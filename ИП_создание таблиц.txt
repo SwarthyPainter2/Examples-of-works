@@ -1,0 +1,595 @@
+CREATE TABLE    rating_passenger2driver
+                (id                     NUMBER      GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 passenger_id           NUMBER      NOT NULL,
+                 /*изменил название с passenger на passenger_id, чтобы пользователь не подумал, что имеется ввиду ввод имени клиента*/
+                 driver_id              NUMBER      NOT NULL,
+                 order_id               NUMBER      NOT NULL,
+                 rating_drv_from_psg    NUMBER (1)          ,
+                 /*изменил название с raring на rating_drv_from_psg для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create            TIMESTAMP   NOT NULL,
+                 /*перенес поле time_create в конец для сохранения логики последовательности стобцов в БД*/
+                 
+                 CONSTRAINT PK_rating_passenger2driver_id PRIMARY KEY (id),
+                 CONSTRAINT CK_rating_passenger2driver_rating_drv_from_psg CHECK (rating_drv_from_psg BETWEEN 1 AND 5));
+                 /*добавил ограничение допустимых значений по полю rating_drv_from_psg, чтобы обеспечить отсутствие оценок вне интервала 1-5*/
+
+COMMENT ON COLUMN rating_passenger2driver.id IS 'идентификатор оценки клиента водителю по итогам поездки, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN rating_passenger2driver.passenger_id IS 'идентификатор клиента, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице passenger';
+COMMENT ON COLUMN rating_passenger2driver.driver_id IS 'идентификатор водителя, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице driver';
+COMMENT ON COLUMN rating_passenger2driver.order_id IS 'идентификатор номера заказа, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице car, не установлено ограничение уникальности значений, т.к. возможны тарифы с совместными поездками для нескольких клиентов (т.е. когда, например, 2 клиента с похожими маршрутами, выбравшие специальный тариф для разделения стоимости поездки, объединяются приложением в один заказ)';
+COMMENT ON COLUMN rating_passenger2driver.rating_drv_from_psg IS 'оценка, которую клиент ставит водителю по итогам поездки, шкале от 1 до 5 (включительно), установлено ограничение допустимых значений';
+COMMENT ON COLUMN rating_passenger2driver.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE rating_passenger2driver
+            ADD (CONSTRAINT FK_rating_passenger2driver_passenger_id FOREIGN KEY (passenger_id) REFERENCES passenger (id),
+                 CONSTRAINT FK_rating_passenger2driver_driver_id FOREIGN KEY (driver_id) REFERENCES driver (id),
+                 CONSTRAINT FK_rating_passenger2driver_order_id FOREIGN KEY (order_id) REFERENCES orders (id));
+
+CREATE TABLE    orders
+                /*изменил название с order на orders, чтобы не нужно было постоянно использовать символ двойных ковычек, т.к. order слово зарезервированное системой
+				  удалил столбец end_trip_address_id, потому что какого-либо практического смысла или полезной информативности в нем не вижу, т.к. данные о всех точках маршрута для каждого заказа хранятся в таблице way*/
+                (id                     NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 passenger_id           NUMBER          NOT NULL,
+                 driver_id              NUMBER          		,
+                 time_create_order      TIMESTAMP       NOT NULL,
+                 /*изменил название с time_create на time_create_order для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_end_order         TIMESTAMP               ,
+                 /*изменил название с time_end на time_end_order для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 status_order           VARCHAR2 (255)  NOT NULL,
+                 /*изменил название с status на status_order для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с ENUM на VARCHAR2 (с ограничением допустимых значений), т.к. ENUM Oracle не поддерживает*/
+                 payment_order_id   	NUMBER          NOT NULL,
+				 /*изменил название с payment_id на payment_order_id для лучшего восприятия информации и работы с данными при соединении таблиц;*/
+				 avg_speed_in_trip      NUMBER (3)              ,
+                 /*изменил название с average_driver_speed на avg_speed_in_trip, чтобы немного сократить название*/
+                 
+                 CONSTRAINT PK_orders_id PRIMARY KEY (id),
+                 CONSTRAINT CK_orders_status_order CHECK (status_order IN ('SEARCH_DRIVER', 'WAIT_DRIVER', 'WAIT_PASSENGER', 'TRIP_STARTED', 'WAIT_PAYMENT', 'TRIP_COMPLETED', 'CANCELED')));
+                 /*добавил ограничение допустимых значений по полю status_order для замены типа данных ENUM на VARCHAR2 без потери функциональности*/
+
+COMMENT ON COLUMN orders.id IS 'идентификатор заказа, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN orders.passenger_id IS 'идентификатор клиента, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице passenger';
+COMMENT ON COLUMN orders.driver_id IS 'идентификатор водителя, внешний ключ к таблице driver';
+COMMENT ON COLUMN orders.time_create_order IS 'дата и время создания записи, создано для фиксакции времени размещения заказа на вызов такси и логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN orders.time_end_order IS 'дата и время прибытия в конечную точку маршрута по заказу';
+COMMENT ON COLUMN orders.status_order IS 'статус заказа, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение допустимых значений (для ввода доступны 7 вариантов статуса: SEARCH_DRIVER, WAIT_DRIVER, WAIT_PASSENGER, TRIP_STARTED, WAIT_PAYMENT, TRIP_COMPLETED, CANCELED)';
+COMMENT ON COLUMN orders.payment_order_id IS 'идентификатор суммы платежа клиента по заказу, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице payment';
+COMMENT ON COLUMN orders.avg_speed_in_trip IS 'средняя скорость движения водителя автомобиля по маршруту заказа';
+
+ALTER TABLE orders
+            ADD (CONSTRAINT FK_orders_passenger_id FOREIGN KEY (passenger_id) REFERENCES passenger (id),
+                 CONSTRAINT FK_orders_driver_id FOREIGN KEY (driver_id) REFERENCES driver (id),
+                 CONSTRAINT FK_orders_payment_order_id FOREIGN KEY (payment_order_id) REFERENCES payment (id),
+                 CONSTRAINT FK_orders_end_trip_address_id FOREIGN KEY (end_trip_address_id) REFERENCES address (id));
+
+CREATE TABLE    way
+                (id                     	NUMBER      GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 from_address_id         	NUMBER      NOT NULL,
+                 to_address_id          	NUMBER      NOT NULL,
+                 way_distance           	NUMBER (4)  NOT NULL,
+                 /*изменил название с distance на way_distance для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 order_id               	NUMBER      NOT NULL,
+                 previous_part_route_id		NUMBER              ,
+                 /*изменил название с preview_way_id на previous_part_route для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create            	TIMESTAMP   NOT NULL,
+                 
+                 CONSTRAINT PK_way_id PRIMARY KEY (id),
+                 CONSTRAINT FK_RECURSIVE_way_previous_part_route_id FOREIGN KEY (previous_part_route_id) REFERENCES way (id));
+
+COMMENT ON COLUMN way.id IS 'идентификатор маршрута, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN way.from_address_id IS 'идентификатор адреса начальной точки маршрута по заказу, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице address';
+COMMENT ON COLUMN way.to_address_id IS 'идентификатор адреса промежуточной / конечной точки маршрута по заказу, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице address';
+COMMENT ON COLUMN way.way_distance IS 'расстояние от начальной до промежуточной / конечной точки маршруту по заказу (в километрах), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN way.order_id IS 'идентификатор номера заказа, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице car, не установлено ограничение уникальности значений, т.к. возможны тарифы с совместными поездками для нескольких клиентов (т.е. когда, например, 2 клиента с похожими маршрутами, выбравшие специальный тариф для разделения стоимости поездки, объединяются приложением в один заказ)';
+COMMENT ON COLUMN way.previous_part_route IS 'идентификатор промежуточного маршрута (отрезок пути со своей начальной и конечной точкой, являющийся одной из составляющих общего маршрута) поездки, заполняется для заказов с многоступенчатыми маршрутами (т.е. маршрутами, где между начальной и конечной точками добавлена 1 или более остановок), рекурсивный внешний ключ, ссылающийся на поле id в своей же таблице';
+COMMENT ON COLUMN way.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE way
+            ADD (CONSTRAINT FK_way_from_address_id FOREIGN KEY (from_address_id) REFERENCES address (id),
+                 CONSTRAINT FK_way_to_address_id FOREIGN KEY (to_address_id) REFERENCES address (id),
+                 CONSTRAINT FK_way_order_id FOREIGN KEY (order_id) REFERENCES orders (id));
+
+CREATE TABLE    passenger
+                (id                   	NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 psg_is_anonymous     	NUMBER (1)      NOT NULL,
+                 /*изменил название с is_anonymous на psg_is_anonymous для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с BOOL (BOOLEAN) на NUMBER (с ограничением допустимых значений), т.к. BOOL (BOOLEAN) Oracle не поддерживает*/
+                 psg_name             	VARCHAR2(255)           ,
+                 /*изменил название с name на psg_name для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 psg_age              	NUMBER (3)              ,
+                 /*изменил название с age на psg_age для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с SHORTINTEGER на NUMBER, т.к. SHORTINTEGER Oracle не поддерживает, а NUMBER по функциональности является аналогом*/
+                 psg_home_address_id  	NUMBER                  ,
+				  /*изменил название с psg_home_address_id на home_address_id для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 psg_email            	VARCHAR2(100)			,
+                 /*добавил поле psg_email с типом данных VARCHAR2, т.к., как правило, в агригаторах такси и других приложениях запрашивается электронная почта, например для отправки чеков, предложений, восстановления пароля и т.д.*/
+                 psg_phone_number     	VARCHAR2(50)    NOT NULL,
+                 /*изменил название с phone_number на psg_phone_number для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 psg_is_male          	NUMBER (1)              ,
+                 /*изменил название с is_male на psg_is_male для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с BOOL (BOOLEAN) на NUMBER (с ограничением допустимых значений), т.к. BOOL (BOOLEAN) Oracle не поддерживает*/
+                 time_create          	TIMESTAMP       NOT NULL,                 
+                 
+                 CONSTRAINT PK_passenger_id PRIMARY KEY (id),
+                 CONSTRAINT CK_orders_psg_is_anonymous CHECK (psg_is_anonymous IN (1, 0)),
+                 /*добавил ограничение допустимых значений по полю psg_is_anonymous для замены типа данных BOOL (BOOLEAN) на NUMBER без потери функциональности*/
+                 CONSTRAINT UQ_passenger_psg_email UNIQUE (psg_email),
+                 /*добавил ограничение уникальности значений psg_email, т.к. электронная почта у разных клиентов не может дублироваться*/
+				 CONSTRAINT CK_passenger_psg_email CHECK ((psg_email IS NULL) OR (psg_email LIKE '%@%.%')),
+                 /*добавил ограничение допустимых значений по полю psg_email, т.к. электронная почта (при условии, что поле заполнено) должна обязательно вклюключать символы '@' (собака) и '.' (точка)*/
+				 CONSTRAINT UQ_passenger_psg_phone_number UNIQUE (psg_phone_number),
+                 /*добавил ограничение уникальности значений по полю psg_phone_number, т.к. номер телефона у разных клиентов не может дублироваться*/
+                 CONSTRAINT CK_orders_psg_is_male CHECK (psg_is_male IN (1, 0)));
+                 /*добавил ограничение допустимых значений по полю psg_is_male для замены типа данных BOOL (BOOLEAN) на NUMBER без потери функциональности*/
+
+COMMENT ON COLUMN passenger.id IS 'идентификатор пассажира, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN passenger.psg_is_anonymous IS 'поле для определения типа авторизации клиента (TRUE - клиент сделал заказ, как анонимный пользователь, т.е. клиент, либо не зарегистрирован, либо не вошел в свой аккаунт; FALSE - клиент авторизировался и сделал заказ под своей учетной записью), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение допустимых значений (для ввода доступны 2 варианта: 1 - TRUE, 0 - FALSE)';
+COMMENT ON COLUMN passenger.psg_name IS 'фамилия, имя и отчество клиента';
+COMMENT ON COLUMN passenger.psg_age IS 'возраст клиента';
+COMMENT ON COLUMN passenger.psg_home_address_id IS 'идентификатор домашнего адреса (названия улицы и номера дома) клиента, внешний ключ к таблице address';
+COMMENT ON COLUMN passenger.psg_email IS 'электронная почта клиента, установлено ограничение уникальности значений, установлено ограничение допустимых значений';
+COMMENT ON COLUMN passenger.psg_phone_number IS 'номер телефона клиента, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение уникальности значений';
+COMMENT ON COLUMN passenger.psg_is_male IS 'поле для определения пола клиента (TRUE - мужчина; FALSE - женщина), установлено ограничение допустимых значений (для ввода доступны 2 варианта: 1 - TRUE, 0 - FALSE)';
+COMMENT ON COLUMN passenger.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE passenger
+            ADD CONSTRAINT FK_passenger_psg_home_address_id FOREIGN KEY (psg_home_address_id) REFERENCES address (id);
+
+CREATE TABLE    passenger_image
+                (passenger_id       NUMBER      		,
+                /*изменил название поля с id на passenger_id для сохрание логики названий БД;
+                  убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может)*/
+                 psg_image          CLOB                ,
+                 /*изменил название с image на psg_image для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create        TIMESTAMP   NOT NULL,
+                 
+                 CONSTRAINT PK_passenger_image_passenger_id PRIMARY KEY (passenger_id),
+                 CONSTRAINT FK_passenger_image_passenger_id FOREIGN KEY (passenger_id) REFERENCES passenger (id));
+
+COMMENT ON COLUMN passenger_image.passenger_id IS 'идентификатор водителя, является одновременно и первичным ключом, и внешним ключом к таблице passenger';
+COMMENT ON COLUMN passenger_image.psg_image IS 'фото клиента в его учетной записи';
+COMMENT ON COLUMN passenger_image.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+CREATE TABLE    passenger_rating
+                (passenger_id       	NUMBER      		,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может)*/
+                 total_rating_psg		NUMBER (1,2)        ,
+                 /*изменил название с rating на total_rating_psg для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create        	TIMESTAMP   NOT NULL,
+                 
+                 CONSTRAINT PK_passenger_rating_passenger_id PRIMARY KEY (passenger_id),
+                 CONSTRAINT FK_passenger_rating_passenger_id FOREIGN KEY (passenger_id) REFERENCES passenger (id),
+                 CONSTRAINT CK_passenger_rating_total_rating_psg CHECK (total_rating_psg BETWEEN 1 AND 5));
+                 /*добавил ограничение допустимых значений по полю total_rating_psg, чтобы обеспечить отсутствие оценок вне интервала 1-5*/
+
+COMMENT ON COLUMN passenger_rating.passenger_id IS 'идентификатор водителя, является одновременно и первичным ключом, и внешним ключом к таблице passenger';
+COMMENT ON COLUMN passenger_rating.total_rating_psg IS 'рейтинг клиента (среднее арифметическое всех оценок от водителей по итогам поездок) за определенный период, по шкале от 1 до 5 (включительно), установлено ограничение допустимых значений';
+COMMENT ON COLUMN passenger_rating.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+CREATE TABLE    address
+                (id             NUMBER      GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 house_number   VARCHAR2(7) NOT NULL,
+                 /*изменил тип данных с INT на VARCHAR2, т.к встречаются дома с буквами или символом / в номерах */
+                 street_id      NUMBER      NOT NULL,
+                 time_create    TIMESTAMP   NOT NULL,
+                 
+                 CONSTRAINT PK_address_id PRIMARY KEY (id));
+
+COMMENT ON COLUMN address.id IS 'идентификатор адреса, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN address.house_number IS 'номер дома, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, поле является частью группы (из 2 столбцов) для которой установлено ограничение уникальности значений, т.е. в каждом из столбцов наличие дублей значений возможно, но их совокупность всегда должна быть уникальной';
+COMMENT ON COLUMN address.street_id IS 'идентификатор названия улицы, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице street, поле является частью группы (из 2 столбцов) для которой установлено ограничение уникальности значений, т.е. в каждом из столбцов наличие дублей значений возможно, но их совокупность всегда должна быть уникальной';
+COMMENT ON COLUMN address.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE address
+            ADD (CONSTRAINT FK_address_street_id FOREIGN KEY (street_id) REFERENCES street (id),
+                 CONSTRAINT UQ_address_street_id_house_number UNIQUE (street_id, house_number));
+                 /*добавил ограничение допустимых значений для полей street_id и house_number, т.к. в рамках данной таблицы их совокупное значение не может дублироваться*/
+
+CREATE TABLE    street
+                (id             NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 street_name    VARCHAR2(255)   NOT NULL,
+                 /*изменил название с name на street_name для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 city_id        NUMBER          NOT NULL,
+                 time_create    TIMESTAMP       NOT NULL,
+                 
+                 CONSTRAINT PK_street_id PRIMARY KEY (id));
+
+COMMENT ON COLUMN street.id IS 'идентификатор названия улицы, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN street.street_name IS 'название улицы, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, поле является частью группы (из 2 столбцов) для которой установлено ограничение уникальности значений, т.е. в каждом из столбцов наличие дублей значений возможно, но их совокупность всегда должна быть уникальной';
+COMMENT ON COLUMN street.city_id IS 'идентификатор названия города, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице city, поле является частью группы (из 2 столбцов) для которой установлено ограничение уникальности значений, т.е. в каждом из столбцов наличие дублей значений возможно, но их совокупность всегда должна быть уникальной';
+COMMENT ON COLUMN street.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE street
+            ADD (CONSTRAINT FK_street_city_id FOREIGN KEY (city_id) REFERENCES city (id),
+                 CONSTRAINT UQ_street_city_id_street_name UNIQUE (city_id, street_name));
+                 /*добавил ограничение допустимых значений для полей city_id и street_name, т.к. в рамках данной таблицы их совокупное значение не может дублироваться*/
+
+CREATE TABLE    city
+                (id             NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 city_name      VARCHAR2(255)   NOT NULL,
+                 /*изменил название с name на city_name для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 country_id     NUMBER          NOT NULL,
+                 time_create    TIMESTAMP       NOT NULL,
+                 
+                 CONSTRAINT PK_city_id PRIMARY KEY (id));
+
+COMMENT ON COLUMN city.id IS 'идентификатор названия города, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN city.city_name IS 'название города, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, поле является частью группы (из 2 столбцов) для которой установлено ограничение уникальности значений, т.е. в каждом из столбцов наличие дублей значений возможно, но их совокупность всегда должна быть уникальной';
+COMMENT ON COLUMN city.country_id IS 'идентификатор названия страны, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице country, поле является частью группы (из 2 столбцов) для которой установлено ограничение уникальности значений, т.е. в каждом из столбцов наличие дублей значений возможно, но их совокупность всегда должна быть уникальной';
+COMMENT ON COLUMN city.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE city
+            ADD (CONSTRAINT FK_city_country_id FOREIGN KEY (country_id) REFERENCES country (id),
+                 CONSTRAINT UQ_city_country_id_city_name UNIQUE (country_id, city_name));
+                 /*добавил ограничение допустимых значений для полей country_id и city_name, т.к. в рамках данной таблицы их совокупное значение не может дублироваться*/
+
+CREATE TABLE    country
+                (id             NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 country_name   VARCHAR2(255)   NOT NULL,
+                 /*изменил название с name на country_name для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 time_create    TIMESTAMP       NOT NULL,
+                 
+                 CONSTRAINT PK_country_id PRIMARY KEY (id));
+
+COMMENT ON COLUMN country.id IS 'идентификатор названия страны, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN country.country_name IS 'название страны, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение уникальности значений';
+COMMENT ON COLUMN country.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE country
+            ADD CONSTRAINT UQ_country_country_name UNIQUE (country_name);
+            /*добавил ограничение допустимых значений по полю country_name, т.к. в рамках данной таблицы названия стран не могут дублироваться*/
+
+CREATE TABLE    rating_driver2passenger
+                (id                     NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 passenger_id           NUMBER          NOT NULL,
+                 /*изменил название с passenger на passenger_id, чтобы пользователь не подумал, что имеется ввиду ввод имени клиента*/
+                 driver_id              NUMBER          NOT NULL,
+                 order_id               NUMBER          NOT NULL,
+                 rating_psg_from_drv    NUMBER (1)              ,
+                 /*изменил название с raring на rating_psg_from_drv для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create            TIMESTAMP       NOT NULL,
+                 
+                 CONSTRAINT PK_rating_driver2passenger_id PRIMARY KEY (id),
+                 CONSTRAINT CK_rating_driver2passenger_rating_psg_from_drv CHECK (rating_psg_from_drv BETWEEN 1 AND 5));
+                 /*добавил ограничение допустимых значений по полю psg_from_drv, чтобы обеспечить отсутствие оценок вне интервала 1-5*/
+
+COMMENT ON COLUMN rating_driver2passenger.id IS 'идентификатор оценки водителя клиенту по итогам поездки, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN rating_driver2passenger.passenger_id IS 'идентификатор клиента, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице passenger';
+COMMENT ON COLUMN rating_driver2passenger.driver_id IS 'идентификатор водителя, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице driver';
+COMMENT ON COLUMN rating_driver2passenger.order_id IS 'идентификатор номера заказа, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице car, не установлено ограничение уникальности значений, т.к. возможны тарифы с совместными поездками для нескольких клиентов (т.е. когда, например, 2 клиента с похожими маршрутами, выбравшие специальный тариф для разделения стоимости поездки, объединяются приложением в один заказ)';
+COMMENT ON COLUMN rating_driver2passenger.rating_psg_from_drv IS 'оценка, которую водитель ставит клиенту по итогам поездки, шкале от 1 до 5 (включительно), установлено ограничение допустимых значений';
+COMMENT ON COLUMN rating_driver2passenger.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE rating_driver2passenger
+            ADD (CONSTRAINT FK_rating_driver2passenger_passenger_id FOREIGN KEY (passenger_id) REFERENCES passenger (id),
+                 CONSTRAINT FK_rating_driver2passenger_driver_id FOREIGN KEY (driver_id) REFERENCES driver (id),
+                 CONSTRAINT FK_rating_driver2passenger_order_id FOREIGN KEY (order_id) REFERENCES orders (id));
+
+CREATE TABLE    payment
+                (id                 NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 payment_amount     NUMBER(7)       NOT NULL,
+                 /*изменил название с amount_to_paid  на payment_amount для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 currency_id        NUMBER          NOT NULL,
+                 payment_type       VARCHAR2(4)     NOT NULL,
+                 /*изменил название с type на payment_type для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с ENUM на VARCHAR2 (с ограничением допустимых значений), т.к. ENUM Oracle не поддерживает*/
+                 time_create        TIMESTAMP       NOT NULL,
+                 
+                 CONSTRAINT PK_payment_id PRIMARY KEY (id),
+                 CONSTRAINT CK_payment_payment_type CHECK (payment_type IN ('CARD', 'CASH')));
+                 /*добавил ограничение допустимых значений по полю payment_type для замены типа данных ENUM на VARCHAR2 без потери функциональности*/
+
+COMMENT ON COLUMN payment.id IS 'идентификатор платежа (для клиента - оплата заказа, для водителя - заправки автомобиля), первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN payment.payment_amount IS 'сумма платежа (для клиента - оплата поездки, для водителя - оплата заправки автомобля), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN payment.currency_id IS 'идентификатор наименования валюты, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице currency';
+COMMENT ON COLUMN payment.payment_type IS 'способ оплаты, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение допустимых значений (для ввода доступны 2 варианта оплаты: CARD, CASH)';
+COMMENT ON COLUMN payment.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE payment
+            ADD CONSTRAINT FK_payment_currency_id FOREIGN KEY (currency_id) REFERENCES currency (id);
+
+CREATE TABLE    currency
+                (id							NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 currency_name				VARCHAR2(50)    NOT NULL,
+                 /*изменил название с name на currency_name для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 currency_abbreviation		VARCHAR2(8)     NOT NULL,
+                 /*изменил название с abbreviation на currency_abbreviation для лучшего восприятия информации и работы с данными при соединении таблиц;
+				   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 time_create				TIMESTAMP       NOT NULL,
+                 
+                 CONSTRAINT PK_currency_id PRIMARY KEY (id));
+
+COMMENT ON COLUMN currency.id IS 'идентификатор названия валюты, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN currency.currency_name IS 'полное наименование валюты, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение уникальности значений';
+COMMENT ON COLUMN currency.currency_abbreviation IS 'аббревиатура валюты, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение уникальности значений';
+COMMENT ON COLUMN currency.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE currency
+            ADD (CONSTRAINT UQ_currency_currency_name UNIQUE (currency_name),
+                 /*добавил ограничение уникальности значений по полю currency_name, т.к. в рамках данной таблицы названия валют не могут дублироваться*/
+                 CONSTRAINT UQ_currency_currency_abbreviation UNIQUE (currency_abbreviation));
+                 /*добавил ограничение уникальности значений по полю currency_abbreviation, т.к. в рамках данной таблицы аббревиатуры валют не могут дублироваться*/
+
+CREATE TABLE    currency2country
+                (currency_id        NUMBER                  ,
+                 country_id         NUMBER                  ,
+                 time_create        TIMESTAMP       NOT NULL,
+                 
+                 CONSTRAINT PK_currency2country_composite_id PRIMARY KEY (currency_id, country_id));
+                 /*создал из полей внешних ключей currency_id и country_id составной первичный ключ для однозначной идентификации строк и исключения возможности дублирования записей*/
+
+COMMENT ON COLUMN currency2country.currency_id IS 'идентификатор названия валюты из таблицы currency, является частью составного первичного ключа, состоящего из 2 полей, также является внешним ключом к табблице currency)';
+COMMENT ON COLUMN currency2country.country_id IS 'идентификатор названия страны из таблицы country, является частью составного первичного ключа, состоящего из 2 полей, также является внешним ключом к табблице country)';
+COMMENT ON COLUMN currency2country.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд)';
+
+ALTER TABLE currency2country
+            ADD (CONSTRAINT FK_currency2country_currency_id FOREIGN KEY (currency_id) REFERENCES currency (id),
+                 CONSTRAINT FK_currency2country_country_id FOREIGN KEY (country_id) REFERENCES country (id));
+
+CREATE TABLE    rate
+                (id                     NUMBER      GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 currency_id_1          NUMBER      NOT NULL,
+                 /*изменил название с currency1_id на currency_id_1 для лучшего восприятия информации и соблюдения логики названий в БД*/
+                 currency_id_2          NUMBER      NOT NULL,
+                 /*изменил название с currency2_id на currency_id_2 для лучшего восприятия информации и соблюдения логики названий в БД*/
+                 rate_cur_1_to_cur_2    NUMBER (4) NOT NULL,
+                 /*изменил название с rate на rate_cur_1_to_cur_1 для лучшего восприятия информации*/
+                 time_create            TIMESTAMP   NOT NULL,
+                 /*перенес поле time_create в конец для сохранения логики последовательности стобцов в БД*/
+                 
+                 CONSTRAINT PK_rate_id PRIMARY KEY (id));
+
+COMMENT ON COLUMN rate.id IS 'идентификатор курса одной валюты по отношений к другой, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN rate.currency_id_1 IS 'id валюты №1, выступает числителем в соотношении по которому рассчитывается курс в поле rate_cur_1_to_cur_2, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице currency';
+COMMENT ON COLUMN rate.currency_id_2 IS 'id валюты №2, выступает знаменателем в соотношении по которому рассчитывается курс в поле rate_cur_1_to_cur_2, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице currency';
+COMMENT ON COLUMN rate.rate_cur_1_to_cur_2 IS 'стоимость валюты №1 по отношению к валюте №2, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN rate.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE rate
+            ADD (CONSTRAINT FK_rate_currency_id_1 FOREIGN KEY (currency_id_1) REFERENCES currency (id),
+                 CONSTRAINT FK_rate_currency_id_2 FOREIGN KEY (currency_id_2) REFERENCES currency (id));
+
+CREATE TABLE    driver
+                (id                         NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено);
+				  удалил столбец registration_date, т.к. запись о дате регистрации водителя в приложении дублирует запись логирования (фиксация даты и времени появления строки с данными водителя в таблице driver)*/
+                 drv_name                   VARCHAR2(255)   NOT NULL,
+                 /*изменил название с name на drv_name для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 drv_age                    NUMBER (3)      NOT NULL,
+                 /*изменил название с age на drv_age для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с SHORTINTEGER на NUMBER, т.к. SHORTINTEGER Oracle не поддерживает, а NUMBER по функциональности является аналогом*/
+                 drv_email                  VARCHAR2(100)   NOT NULL,
+                 /*добавил поле drv_email с типом данных VARCHAR2, т.к., как правило, в агригаторах такси и других приложениях запрашивается электронная почта, например для отправки чеков, предложений, восстановления пароля и т.д.*/
+                 drv_phone_number           VARCHAR2(50)    NOT NULL,
+                 /*изменил название с phone_number на drv_phone_number для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 drv_percent_of_payment     NUMBER (3)      NOT NULL,
+                 /*изменил название с percent_of_payment на drv_percent_of_payment для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create_registration   TIMESTAMP       NOT NULL,
+                 
+                 CONSTRAINT PK_driver_id PRIMARY KEY (id),
+                 CONSTRAINT CK_driver_drv_age CHECK (drv_age >= 18),
+                 /*добавил ограничение допустимых значений по полю drv_age, т.к. возраст с которого можно управлять автомобилем - 18 лет*/
+                 CONSTRAINT UQ_driver_drv_email UNIQUE (drv_email),
+                 /*добавил ограничение уникальности значений по полю drv_email, т.к. электронная почта у разных водителей не может дублироваться*/
+				 CONSTRAINT CK_driver_drv_email CHECK (drv_email LIKE '%@%.'),
+                 /*добавил ограничение допустимых значений по полю drv_email, т.к. электронная почта должна обязательно вклюключать символы '@' (собака) и '.' (точка)*/
+                 CONSTRAINT UQ_driver_phone_drv_phone_number UNIQUE (drv_phone_number));
+                 /*добавил ограничение уникальности значений по полю drv_phone_number, т.к. номер телефона у разных водителей не может дублироваться*/
+
+COMMENT ON COLUMN driver.id IS 'идентификатор водителя, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN driver.drv_name IS 'фамилия, имя и отчество водителя, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN driver.drv_age IS 'возраст водитля, минимальное значение - 18, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение допустимых значений';
+COMMENT ON COLUMN driver.drv_email IS 'электронная почта водтеля, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение уникальности значений, установлено ограничение допустимых значений';
+COMMENT ON COLUMN driver.drv_phone_number IS 'номер телефона водителя, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение уникальности значений';
+COMMENT ON COLUMN driver.drv_percent_of_payment IS 'процент от суммы оплаты каждого заказа, который получает водитель, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';;
+COMMENT ON COLUMN driver.time_create IS 'дата и время создания записи, создано для фиксакции момента регистрации аккаунта водителя в приложении и логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+CREATE TABLE    driver_image
+                (driver_id      NUMBER	     		,
+                /*изменил название поля с id на driver_id для сохрание логики названий БД;
+                  убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может)*/
+                 drv_image      CLOB                ,
+                 /*изменил название с is_image на drv_image для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create    TIMESTAMP   NOT NULL,
+                 
+                 CONSTRAINT PK_driver_image_driver_id PRIMARY KEY (driver_id),
+                 CONSTRAINT FK_driver_image_driver_id FOREIGN KEY (driver_id) REFERENCES driver (id));
+
+COMMENT ON COLUMN driver_image.driver_id IS 'идентификатор водителя, является одновременно и первичным ключом, и внешним ключом к таблице driver';
+COMMENT ON COLUMN driver_image.drv_image IS 'фото водителя в его учетной записи';
+COMMENT ON COLUMN driver_image.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+CREATE TABLE    driver_rating
+                (driver_id          	NUMBER	     		,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может)*/
+                 total_rating_drv		NUMBER (1,2)        ,
+                 /*изменил название с rating на total_rating_drv для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create        	TIMESTAMP   NOT NULL,
+                 
+                 CONSTRAINT PK_driver_rating_driver_id PRIMARY KEY (driver_id),
+                 CONSTRAINT FK_driver_rating_driver_id FOREIGN KEY (driver_id) REFERENCES driver (id),
+                 CONSTRAINT CK_driver_rating_total_rating_drv CHECK (total_rating_drv BETWEEN 1 AND 5));
+                 /*добавил ограничение допустимых значений по полю total_rating_drv, чтобы обеспечить отсутствие оценок вне интервала 1-5*/
+
+COMMENT ON COLUMN driver_rating.driver_id IS 'идентификатор водителя, является одновременно и первичным ключом, и внешним ключом к таблице driver';
+COMMENT ON COLUMN driver_rating.total_rating_drv IS 'рейтинг водителя (среднее арифметическое всех оценок от клиентов по итогам поездок) за определенный период, по шкале от 1 до 5 (включительно), установлено ограничение допустимых значений';
+COMMENT ON COLUMN driver_rating.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+
+CREATE TABLE    refueling
+                (id                     	NUMBER      GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 driver_id              	NUMBER      NOT NULL,
+                 car_id                 	NUMBER      NOT NULL,
+                 refueling_payment_id       NUMBER      NOT NULL,
+				 /*изменил название с payment_id на refueling_payment_id, чтобы не нужно было постоянно использовать символ двойных ковычек, т.к. number слово зарезервированное системой*/
+                 amount_gas_refueled    	NUMBER(5)   NOT NULL,
+				 /*изменил название с amount_of_gasoline на amount_gas_refueled, чтобы не нужно было постоянно использовать символ двойных ковычек, т.к. number слово зарезервированное системой*/
+                 gas_station_address_id		NUMBER      NOT NULL,
+				 /*изменил название с address_id на gas_station_address_id, чтобы не нужно было постоянно использовать символ двойных ковычек, т.к. number слово зарезервированное системой*/
+                 time_create            	TIMESTAMP   NOT NULL,
+                 
+                 CONSTRAINT PK_refueling_id PRIMARY KEY (id));
+
+COMMENT ON COLUMN refueling.id IS 'идентификатор записи о заправке автомобиля, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN refueling.driver_id IS 'идентификатор водителя, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице driver';
+COMMENT ON COLUMN refueling.car_id IS 'идентификатор автомобиля, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице car';
+COMMENT ON COLUMN refueling.refueling_payment_id IS 'идентификатор стоимости заправки автомобиля, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице payment';
+COMMENT ON COLUMN refueling.amount_gas_refueled IS 'количество заправленного бензина (в литрах), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN refueling.gas_station_address_id IS 'идентификатор адрес заправочной станции, где проходила заправка, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице address';
+COMMENT ON COLUMN refueling.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE refueling
+            ADD (CONSTRAINT FK_refueling_driver_id FOREIGN KEY (driver_id) REFERENCES driver (id),
+                 CONSTRAINT FK_refueling_car_id FOREIGN KEY (car_id) REFERENCES car (id),
+                 CONSTRAINT FK_refueling_refueling_payment_id FOREIGN KEY (refueling_payment_id) REFERENCES payment (id),
+                 CONSTRAINT FK_refueling_gas_station_address_id FOREIGN KEY (gas_station_address_id) REFERENCES address (id));
+
+CREATE TABLE    parking
+                (id                 	NUMBER      GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 parking_number     	NUMBER(6)   NOT NULL,
+                 /*изменил название с number на parking_number, чтобы не нужно было постоянно использовать символ двойных ковычек, т.к. number слово зарезервированное системой*/
+                 parking_address_id		NUMBER      NOT NULL,
+				 /*изменил название с address_id на parking_address_id, чтобы не нужно было постоянно использовать символ двойных ковычек, т.к. number слово зарезервированное системой*/
+                 time_create        	TIMESTAMP   NOT NULL,
+                 
+                 CONSTRAINT PK_parking_id PRIMARY KEY (id),
+                 CONSTRAINT UQ_parking_parking_number UNIQUE (parking_number));
+
+COMMENT ON COLUMN parking.id IS 'идентификатор места парковки автомобиля, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN parking.parking_number IS 'номер места парковки для автомобиля, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение уникальности значений';
+COMMENT ON COLUMN parking.id IS 'идентификатор адреса места парковки, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице address';
+COMMENT ON COLUMN parking.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE parking
+            ADD CONSTRAINT FK_parking_parking_address_id FOREIGN KEY (parking_address_id) REFERENCES address (id);
+
+CREATE TABLE    rent
+                (id                         	NUMBER      GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 driver_id                  	NUMBER      NOT NULL,
+                 car_id                     	NUMBER      NOT NULL,
+                 date_start_rent_period        	DATE        NOT NULL,
+                 /*изменил название с date_start на date_start_rent_period для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 date_stop_rent_period			DATE                ,
+                 /*изменил название с data_stop на date_stop_rent_period для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 spent_gasoline_rent_period		NUMBER (8)          ,
+                 /*изменил название с gas_mileage на spent_gasoline_rent_period для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 mileage_rent_period			NUMBER (8)          ,
+                 /*изменил название с distance на mileage_rent_period для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create                	TIMESTAMP   NOT NULL,
+                 
+                 CONSTRAINT PK_rent_id PRIMARY KEY (id));
+
+COMMENT ON COLUMN rent.id IS 'идентификатор записи об аренде автомобиля водителем, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN rent.driver_id IS 'идентификатор водителя, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице driver';
+COMMENT ON COLUMN rent.car_id IS 'идентификатор автомобиля, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, внешний ключ к таблице car';
+COMMENT ON COLUMN rent.date_start_rent_period IS 'дата начала периода аренды автомобиля водителем, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN rent.date_stop_rent_period IS 'дата окончания аренды автомобиля водителем';
+COMMENT ON COLUMN rent.spent_gasoline_rent_period IS 'расход бензина в литрах за время аренды автомобиля';
+COMMENT ON COLUMN rent.mileage_rent_period IS 'пробег автомобиля в киллометрах за время аренды автомобиля';
+COMMENT ON COLUMN rent.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE rent
+            ADD (CONSTRAINT FK_rent_driver_id FOREIGN KEY (driver_id) REFERENCES driver (id),
+                 CONSTRAINT FK_rent_car_id FOREIGN KEY (car_id) REFERENCES car (id));
+
+CREATE TABLE    car
+                (id                         NUMBER          GENERATED AS IDENTITY START WITH 1 INCREMENT BY 1 NOCACHE,
+                /*убрал ограничение NOT NULL (т.к. это поле первичного ключа и значений NULL оно само по себе содержать не может);
+                  добавил автоинкремент (с паоаметрами: начальная позиция 1, шаг 1, кэширование отключено)*/
+                 brand_car                  VARCHAR2(50)    NOT NULL,
+                 /*изменил название с brand на brand_car для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 model_car                  VARCHAR2(50)    NOT NULL,
+                 /*изменил название с model на model_car для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 color_car                  VARCHAR2(50)    NOT NULL,
+                 /*изменил название с color на color_car для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с ENUM на VARCHAR2 (с ограничением допустимых значений), т.к. ENUM Oracle не поддерживает*/
+                 car_is_reserved            NUMBER (1)      NOT NULL,
+                 /*изменил название с is_reserved на car_is_reserved_car для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с BOOL (BOOLEAN) на NUMBER (с ограничением допустимых значений), т.к. BOOL (BOOLEAN) Oracle не поддерживает*/
+                 state_number_car           VARCHAR2(50)    NOT NULL,
+                 /*изменил название с state number на state_number_car, чтобы не нужно было постоянно использовать символ двойных ковычек, т.к. пробелы в наименованиях полей не допускаются и для лучшего восприятия информации и работы с данными при соединении таблиц;
+                   изменил тип данных с VARCHAR на VARCHAR2, т.к в курсе была рекомендация использовать именно VARCHAR2*/
+                 parking_id                 NUMBER          		,
+                 current_mileage_car        NUMBER (8)      NOT NULL,
+                 /*изменил название с mileage на current_mileage_car для лучшего восприятия информации и работы с данными при соединении таблиц*/
+                 time_create                TIMESTAMP       NOT NULL,
+                 
+                 CONSTRAINT PK_car_id PRIMARY KEY (id),
+                 CONSTRAINT CK_car_color_car CHECK (color_car IN ('White', 'Black', 'Grey', 'Red', 'Blue', 'Yellow', 'Green')),
+                 /*добавил ограничение допустимых значений по полю color_car для замены типа данных ENUM на VARCHAR2 без потери функциональности*/
+                 CONSTRAINT CK_car_car_is_reserved CHECK (car_is_reserved IN(1,0)),
+                 /*добавил ограничение допустимых значений по полю car_is_reserved для замены типа данных BOOL (BOOLEAN) на NUMBER без потери функциональности*/
+                 CONSTRAINT UQ_car_state_number_car UNIQUE (state_number_car));
+
+COMMENT ON COLUMN car.id IS 'идентификатор автомобиля, первичный ключ таблицы, заполняется автоматически, установлен автоинкремент (шаг значения 1, кэширование отключено)';
+COMMENT ON COLUMN car.brand_car IS 'марка автомобиля, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN car.model_car IS 'модель автомобиля, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN car.color_car IS 'цвет автомобиля, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение допустимых значений (для ввода доступны 7 вариантов цветов: White, Black, Grey, Red, Blue, Yellow, Green)';
+COMMENT ON COLUMN car.car_is_reserved IS 'поле для определения доступности автомобиля для аренды (TRUE - автомобиль в данной момент занят другим водителем; FALSE - автомобиль свободен и его можно арендовать), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение допустимых значений (для ввода доступны 2 варианта: 1 - TRUE, 0 - FALSE), утановлено ограничение вставки значения по умолчанию (автоматически присваивается 0)';
+COMMENT ON COLUMN car.state_number_car IS 'государственный номер автомобиля, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение уникальности значений';
+COMMENT ON COLUMN car.current_mileage_car IS 'пробег автомобиля на текущий момент времени, установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+COMMENT ON COLUMN car.parking_id IS 'идентификатор парковки автомобиля, установлено ограничение на отсутствие NULL значений для автомобилей с любым статусом, кроме UNAVAILABLE_FOREVER, с помощью триггера => поле обязательно для заполнения, установлено ограничение уникальности значений, внешний ключ к таблице parking';
+COMMENT ON COLUMN car.time_create IS 'дата и время создания записи, создано для логирования, заполняется автоматически, триггер проставляет значения SYSDATE (дата и время создания с точностью до секунд), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения';
+
+ALTER TABLE car
+            ADD (car_status     VARCHAR2(100)   NOT NULL,
+                 /*добавил поле car_status с типом данных VARCHAR2, чтобы повысть уровень управляемости и прозрачности данных, т.к. если, например, авто находится на ремонте, то арендовать его нельзя, но при этом в таблице без поля статуса мы бы этого понять никак не смогли бы*/
+                 car_class      VARCHAR2(100)   NOT NULL);
+                 /*добавил поле car_class с типом данных VARCHAR2, для реалистичности, т.к., агригаторы такси используют такую категоризацию и привязывают к ней тарифы, позволяющие клиенту влиять на уровень комфорта и стоимость поездки */
+
+COMMENT ON COLUMN car.car_status IS 'статус готовности автомобиля для использование (при указании статуса CAR_UNDER_REPAIR за автомобилем сохраняется его парковочное место, а при статусе UNAVAILABLE_FOREVER триггером автоматически проставляется NULL), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлено ограничение допустимых значений (для ввода доступны 3 варианта статуса: CAR_READY_TO_USE, CAR_UNDER_REPAIR, UNAVAILABLE_FOREVER)';
+COMMENT ON COLUMN car.car_class IS 'класс / категория автомобиля, поле определяет тариф, влияющий на стоимость поездки (в данной схеме не применяется, поэтому поле носит только инфорационный характер), установлено ограничение на отсутствие NULL значений => поле обязательно для заполнения, установлена ограничение допустимых значений (для ввода доступны 5 вариантов статуса: ECONOMY_CLASS, COMFORT_CLASS, COMFORT_PLUS_CLASS, BUSINESS_CLASS, PREMIER)';
+
+ALTER TABLE car
+            ADD (CONSTRAINT FK_car_parking_id FOREIGN KEY (parking_id) REFERENCES parking (id),
+                 CONSTRAINT CK_car_car_status CHECK (car_status IN ('CAR_READY_TO_USE', 'CAR_UNDER_REPAIR', 'UNAVAILABLE_FOREVER')),
+                 /*добавил ограничение допустимых значений по полю car_status, чтобы пользователи могли указывать только один из предзаданных статусов для автомобиля*/
+                 CONSTRAINT CK_car_car_class CHECK (car_class IN ('ECONOMY_CLASS', 'COMFORT_CLASS', 'COMFORT_PLUS_CLASS', 'BUSINESS_CLASS', 'PREMIER')),
+                 /*добавил ограничение допустимых значений по полю car_class, чтобы пользователи могли указывать только один из предзаданных классов автомобиля*/
+                 CONSTRAINT UQ_car_parking_id UNIQUE (parking_id));
+                 /*добавил ограничение уникальности значений по полю parking_id, т.к. парковочное место у разных автомобилей не может дублироваться*/
+
+ALTER TABLE car
+            MODIFY car_is_reserved DEFAULT 0;
+			/*добавил ограничение вставки значения по умолчанию, т.к. дл внесении в таблицу car автомобиль не может быть сразу арендован*/

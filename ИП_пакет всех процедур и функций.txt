@@ -1,0 +1,943 @@
+create or replace PACKAGE pkg_taxi_budarin AS
+
+/*созданные типы данных для присвоения переменным*/
+TYPE tab_address                IS TABLE OF address.id%TYPE         NOT NULL;
+TYPE tab_distance               IS TABLE OF way.way_distance%TYPE   NOT NULL;
+
+TYPE rec_salary_drv IS RECORD (id           driver.id%TYPE,
+                               name         driver.drv_name%TYPE,
+                               salary       NUMBER (7,2),
+                               time_create  TIMESTAMP);
+
+TYPE tbl_salary_drv IS TABLE OF rec_salary_drv;
+
+/*переменные для обработки исключений*/
+var_error_nulls_in_par          EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_nulls_in_par, -20001);
+
+var_error_multi_booking         EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_multi_booking, -20002);
+
+var_error_reserved              EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_reserved, -20003);
+
+var_error_repair                EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_repair, -20004);
+
+var_error_payment_type          EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_payment_type, -20005);
+
+var_error_address               EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_address, -20006);
+
+var_error_qty_values            EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_qty_values, -20007);
+
+var_error_repeat_address        EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_repeat_address, -20008);
+
+var_error_email                 EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_email, -20009);
+
+var_error_phone                 EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_phone, -20010);
+
+var_error_male_id               EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_male_id, -20011);
+
+var_error_rating                EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_nulls_in_par, -20012);
+
+PROCEDURE booking_car_by_driver (par_driver_id IN driver.id%TYPE, par_car_id IN car.id%TYPE);
+/*1) Процедура для бронирования автомобиля водителем, в параметрах необходимо указать:
+  - id водителя (параметр №1)
+  - id автомобиля (параметр №2)*/
+
+
+PROCEDURE stop_booking_car_by_driver (par_car_id IN car.id%TYPE, par_spent_gasoline IN rent.spent_gasoline_rent_period%TYPE, par_mileage IN rent.mileage_rent_period%TYPE);
+/*2) Процедура для снятия автомобиля с бронирования водителем, в параметрах необходимо указать:
+  - id автомобиля (параметр №1)
+  - количество потраченногоза за период аренды бензина в литрах (параметр №2)
+  - дистанцию которую проехал автомобиль за период аренды (параметр №3)*/
+
+
+PROCEDURE car_refueling (par_car_id IN car.id%TYPE, par_amount_of_gas IN refueling.amount_gas_refueled%TYPE, par_gs_address_id IN address.id%TYPE,
+                         par_payment IN payment.payment_amount%TYPE, par_currency_id IN currency.id%TYPE, par_payment_type IN payment.payment_type%TYPE);
+/*3) Процедура для внесения данных о заправках автомобилей, в параметрах необходимо указать:
+  - id автомобиля (параметр №1)
+  - количество литров заправленного в автомобиль бензина (параметр №2)
+  - id адреса заправки (параметр №3)
+  - сумму оплаты стоимости заправки автомобиля (параметр №4)
+  - id валюты, которой была оплачена заправка автомобиля (параметр №5)
+  - способ оплаты заправка автомобиля (параметр №6)*/
+
+
+PROCEDURE create_order (par_psg_id IN passenger.id%TYPE,
+                        par_from_address IN address.id%TYPE, par_to_address IN VARCHAR2, par_distance IN VARCHAR2,
+                        par_payment IN payment.payment_amount%TYPE, par_currency_id IN currency.id%TYPE, par_payment_type IN payment.payment_type%TYPE);
+
+/*4) Процедура для создания заказов, в параметрах необходимо указать:
+  - id клиента (параметр №1)
+  - id адреса начальной точки маршрута (параметр №2)
+  - промежуточную(-ые) и/или конечную точку маршрута (параметр №3)
+  - дистанцию(-ии) маршрута (расстояние между начальной и конечной точкой в киллометрах) для кажого значения из параметра №3 (параметр №4)
+  - сумму оплаты стоимости заправки автомобиля (параметр №5)
+  - id валюты, которой была оплачена заправка автомобиля (параметр №5)
+  - способ оплаты заправка автомобиля (параметр №6)
+
+  !Для параметров №3 и №4 допускается ввод, как одного значения, так и списка значений с разделителем, при этом, независимо от количество значений, ввод должен быть совершен с использованием символа строкового литерала
+   (т.е. заключен в одинарные кавычки '...')*/
+
+
+PROCEDURE update_rating_psg (par_period_in_days IN NUMBER);
+/*5) Процедура для обновления рейтинга клиента, в параметре необходимо указать количество дней, для определения интервала выборки оценок от водителей*/
+
+
+PROCEDURE update_rating_drv (par_period_in_days IN NUMBER);
+/*6) Процедура для обновления рейтинга водителя, в параметре необходимо указать количество дней, для определения интервала выборки оценок от клиентов*/
+
+
+PROCEDURE create_drv (par_name IN driver.drv_name%TYPE, par_age IN driver.drv_age%TYPE,
+                      par_email IN driver.drv_email%TYPE, par_phone_number IN driver.drv_phone_number%TYPE, par_percent_of_payment IN driver.drv_percent_of_payment%TYPE);
+/*7) Процедура для внесения данных о водителях в таблицы driver, driver_rating и driver_image, в параметрах необходимо указать:
+  -  ФИО водителя (параметр №1)
+  -  возраст водителя(параметр №2)
+  -  электронная почта водителя (параметр №3)
+  -  номер телефона водителя (параметр №4)
+  -  процент от суммы оплаты каждого заказа, который получает водитель (параметр №5)*/
+
+
+PROCEDURE create_psg (par_name IN passenger.psg_name%TYPE, par_age IN passenger.psg_age%TYPE, par_address IN passenger.psg_home_address_id%TYPE,
+                      par_email IN passenger.psg_email%TYPE, par_phone_number IN passenger.psg_phone_number%TYPE, par_male IN passenger.psg_is_male%TYPE);
+/*8) Процедура для внесения данных о клиентах в таблицы passenger, passenger_rating и passenger_image, в параметрах необходимо указать:
+  -  ФИО клиента (параметр №1)
+  -  возраст клиента (параметр №2)
+  -  домашний адрес клиента (параметр №3)
+  -  электронная почта клиента (параметр №4)
+  -  номер телефона клиента (параметр №5)
+  -  пол клиента (параметр №6)
+
+  при заполнении значений параметров процедуры возможны 2 опции:
+  1. клиент не авторизован в приложении (не имеет учетной записи, либо не вошел в нее) => в таком случае, все параметры, кроме номера телефона (параметр №5), должны быть заполнены NULL значения
+  2. клиент авторизован в приложении (зарегистрировался и вошел в свою учетную запись) => в таком случае, все параметры должны быть заполнены
+  !  параметр, определяющий номер телефона, должен быть заполнен обязательно*/
+
+PROCEDURE insert_trip_rating_for_drv (par_order_id IN orders.id%TYPE, par_trip_rating IN rating_passenger2driver.rating_drv_from_psg%TYPE);
+/*9) Процедура для внесения оценки водителя от клиента по завершении поездки, в параметрах необходимо указать:
+  -  номер заказа (параметр №1)
+  -  оценка по шкале от 1 до 5 (параметр №2)*/
+
+
+PROCEDURE insert_trip_rating_for_psg (par_order_id IN orders.id%TYPE, par_trip_rating IN rating_passenger2driver.rating_drv_from_psg%TYPE);
+/*10) Процедура для внесения оценки клиента от водителя по завершении поездки, в параметрах необходимо указать:
+  -   номер заказа (параметр №1)
+  -   оценка по шкале от 1 до 5 (параметр №2)*/
+
+FUNCTION payroll_calculation_drv (par_month IN NUMBER, par_year IN NUMBER) RETURN tbl_salary_drv PIPELINED;
+/*11) Конвейерная функци для расчета зарплаты за месяц для каждого водителя, в параметрах необходимо указать:
+  -   номер месяца (параметр №1)
+  -   год (параметр №2)*/
+
+END pkg_taxi_budarin;
+
+
+create or replace PACKAGE BODY pkg_taxi_budarin AS
+
+/*1) Процедура для бронирования автомобиля водителем*/
+PROCEDURE booking_car_by_driver (par_driver_id IN driver.id%TYPE, par_car_id IN car.id%TYPE) AS
+
+var_check_multi_booking         NUMBER;
+var_check_driver                rent.driver_id%TYPE;
+var_check_car                   rent.car_id%TYPE;
+var_check_reserved              car.car_is_reserved%TYPE;
+var_check_status                car.car_status%TYPE;
+
+BEGIN
+            BEGIN
+                        SELECT id
+                        INTO var_check_driver
+                        FROM driver
+                        WHERE id = par_driver_id;
+                        /*поиск указанного в параметре id водителя и передача результата в переменную var_check_driver;
+                          действие необходимо для проверки существования в базе id водителя, т.е. если запрос возвращает id, то водитель в базе есть, если не возвращает, то инициируется ошибка*/
+            EXCEPTION
+                        WHEN NO_DATA_FOUND
+                        THEN dbms_output.put_line ('Ошибка ' || sqlerrm || ', действие не выполнено, т.к. водителя с таким id не существует в базе');
+                        /*обработка ошибки для случев, когда id водителя введен неправильно, т.е. указанного в параметре id нет в таблице driver*/
+            END;
+
+            BEGIN
+                        SELECT id, car_is_reserved, car_status
+                        INTO var_check_car, var_check_reserved, var_check_status
+                        FROM car
+                        WHERE id = par_car_id;
+                        /*поиск данных об автомобиле (его id, статус резерва и статус готовности к использованию) по указанному в параметре id и передача результата в переменные var_check_car, var_check_reserved и var_check_status соответственно;
+                          действие необходимо для: - проверки существования в базе id автомобиля, т.е. если запрос возвращает id, то автомобль в базе есть, если не возвращает, то инициируется ошибка
+                                                   - внесения данных в переменные, которые будут использованы для дополнитльных проверок в следующем блоке*/
+            EXCEPTION
+                        WHEN NO_DATA_FOUND
+                        THEN dbms_output.put_line ('Ошибка ' || sqlerrm || ', действие не выполнено, т.к. автомобиля с таким id не существует в базе');
+                        /*обработка ошибки для случев, когда id автомобиля введен неправильно, т.е. указанного в параметре id нет в таблице car*/
+            END;
+
+            SELECT COUNT (driver_id)
+            INTO var_check_multi_booking
+            FROM rent
+            WHERE driver_id = par_driver_id AND date_stop_rent_period IS NULL;
+            /*поиск указанного в параметре id водителя по таблице rent (содержит данные об автомобилях, которые находятся в аренде у водителей) с условием, что поле с датой окончания периода аренды не заполнено и передача результата в переменную var_check_multi_booking;
+              действие необходимо для проверки существования у водителя с указанным в параметре id автомобилей с незавершенной арендой, т.е. запрос вернет количество автомобилей, которые в данный момент находятся в аренде у водителя*/
+
+            IF var_check_driver IS NULL OR var_check_car IS NULL
+               THEN RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Для устранения ошибки проверьте отсутствие NULL значений в параметрах при вызове процедуры, либо внесите исправления в соответствии с комментариями об ошибках выше (если они есть)');
+               /*проверка на NULL и инициация вызова ошибки для случев, когда хотя бы в одном из параметров или check переменная, значения которых используются для изменения таблиц, принимает значение NULL;
+                 действие необходимо, т.к. наличие NULL значений будет приводить к ошибке нарушения ограничений целостности таблицы, в которую процедура вносит изменения*/
+               ELSIF var_check_multi_booking > 0
+               THEN RAISE_APPLICATION_ERROR (-20002, 'действие не выполнено, т.к. у данного водителя уже есть автомобиль в аренде');
+               /*проверка количества автомобилей с незавершенной арендой у водителя с указанным в параметре id и инициация вызова ошибки для случев, когда у данного водителя есть хотя бы один автомобиль с незавершенной арендой*/
+               ELSIF var_check_reserved = 1
+               THEN RAISE_APPLICATION_ERROR (-20003, 'действие не выполнено, т.к. данный автомобиль уже забронирован другим водителем');
+               /*проверка статуса резерва и инициация вызова ошибки для случев, когда автомобиль с указанным в параметре id уже забронирован, т.е. значение в поле car_is_reserved уже равно 1*/
+               ELSIF var_check_status != 'CAR_READY_TO_USE'
+               THEN RAISE_APPLICATION_ERROR (-20004, 'действие не выполнено, т.к. данный автомобиль временно недоступен для бронирования');
+                /*проверка статуса состояния готовности автомобиля и инициация вызова ошибки для случев, когда автомобилю с указанным в параметре id присвоен статус отличный от 'готов к использованию' (например, находится на ремонте), т.е. значение в поле car_status не соответствует значению CAR_READY_TO_USE*/
+               ELSE
+                    INSERT INTO rent    (driver_id,         car_id,         date_start_rent_period,     date_stop_rent_period,      spent_gasoline_rent_period,     mileage_rent_period)
+								VALUES  (par_driver_id,     par_car_id,     SYSDATE,                    NULL,                       NULL,                           NULL);
+                    /*в таблицу rent вставляется новая строка: поля driver_id и car_id заполняются значениями из параметров par_driver_id и par_car_id соответственно, в поле date_start_rent_period автоматически проставляется текущая дата,
+                      а поля date_stop_rent_period, spent_gasoline_rent_period и mileage_rent_period остаются пустыми*/
+                    UPDATE car SET 	 car_is_reserved = 1
+                               WHERE id = par_car_id;
+                    /*в таблице car поле car_is_reserved принимает значение 1 (TRUE), т.к. автомобиль бронируется и закрепляется за водителем*/
+            END IF;
+
+            COMMIT;
+            DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+
+EXCEPTION
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда хотя бы один параметр или check переменная, значения которых используются для изменения таблиц, принимает значение NULL*/
+
+            WHEN var_error_multi_booking
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда у водителя с указанным в параметре id уже есть автомобиль с незавершенной арендой*/
+
+            WHEN var_error_reserved
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда автомобиль с указанным в параметре id уже забронирован другим водителем, т.е. значение в поле car_is_reserved уже равно 1*/
+
+            WHEN var_error_repair
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда автомобилю с указанным в параметре id присвоен статус отличный от 'готов к использованию' (например, находится на ремонте), т.е. значение в поле car_status не соответствует значению CAR_READY_TO_USE*/
+END booking_car_by_driver;
+
+
+/*2) Процедура для снятия автомобиля с бронирования водителем*/
+PROCEDURE stop_booking_car_by_driver (par_car_id IN car.id%TYPE, par_spent_gasoline IN rent.spent_gasoline_rent_period%TYPE, par_mileage IN rent.mileage_rent_period%TYPE) AS
+
+var_check_reserved              car.car_is_reserved%TYPE;
+
+BEGIN
+        BEGIN
+                    SELECT car_id
+                    INTO var_check_reserved
+                    FROM rent
+                    WHERE car_id = par_car_id AND date_stop_rent_period IS NULL;
+                    /*поиск указанного в параметре id автомобиля в таблице rent (содержит данные об автомобилях, которые находятся в аренде у водителей) с условием, что поле с датой окончания периода аренды не заполнено и передача результата в переменную var_check_reserved;
+                      действие необходимо для проверки существования указанного в параметре id автомобиля и статуса его бронирования среди автомобилей в аренде, т.е. если запрос возвращает id, то автомобиль в базе есть и, в данный момент, забронирован водителем, если не возвращает, то инициируется ошибка*/
+        EXCEPTION
+                    WHEN NO_DATA_FOUND
+                    THEN dbms_output.put_line ('Ошибка ' || sqlerrm || ', действие не выполнено, т.к. автомобиль с таким id не забронирован ни одним из водителей, либо вовсе не существует в базе');
+                    /*обработка ошибки для случев, когда автомобиль с указанным в параметре id не забронирован ни одним из водителей, т.е. записи с таким car_id нет в таблице rent,
+                      либо id автомобиля введен неправильно, т.е. указанного в параметре id нет в таблице car*/
+        END;
+
+        IF var_check_reserved IS NULL OR par_spent_gasoline IS NULL OR par_mileage IS NULL
+           THEN RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Для устранения ошибки проверьте отсутствие NULL значений в параметрах при вызове процедуры, либо внесите исправления в соответствии с комментариями об ошибках выше (если они есть)');
+                /*проверка на NULL и инициация вызова ошибки для случев, когда хотя бы в одном из параметров или check переменная, значения которых используются для изменения таблиц, принимает значение NULL;
+                  действие необходимо, т.к. наличие NULL значений будет приводить к ошибке нарушения ограничений целостности таблицы, в которую процедура вносит изменения*/
+           ELSE
+                UPDATE rent SET   date_stop_rent_period = SYSDATE,
+                                  spent_gasoline_rent_period = par_spent_gasoline,
+                                  mileage_rent_period = par_mileage
+                            WHERE car_id = par_car_id AND date_stop_rent_period IS NULL;
+                       /*в таблице rent обновляются поля date_stop_rent_period, spent_gasoline_rent_period и mileage_rent_period (изначально, при вставки, не заполнялись):
+                         в поле date_stop_rent_period автоматически проставляется текущая дата, а поля spent_gasoline_rent_period и mileage_rent_period заполняются значениями из параметров par_spent_gasoline и par_mileage соответственно*/
+
+                       UPDATE car SET   car_is_reserved = 0,
+                                        current_mileage_car = current_mileage_car + par_mileage
+                                  WHERE id = par_car_id;
+                       /*в таблице car обовляются поля car_is_reserved и current_mileage_car: поле car_is_reserved принимает значение 0 (FALSE), т.к. автомобиль снимается с бронирования,
+                         а в поле current_mileage_car обновляется текущий пробег автомобиля, т.е. к исходному значению пробега прибавляется пробег за период последней аренды (значение параметра par_spent_gasoline)*/
+        END IF;
+
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+
+EXCEPTION
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда хотя бы один параметр или check переменная, значения которых используются для изменения таблиц, принимает значение NULL*/
+END stop_booking_car_by_driver;
+
+
+/*3) Процедура для внесения данных о заправках автомобилей*/
+PROCEDURE car_refueling (par_car_id IN car.id%TYPE, par_amount_of_gas IN refueling.amount_gas_refueled%TYPE, par_gs_address_id IN address.id%TYPE,
+                         par_payment IN payment.payment_amount%TYPE, par_currency_id IN currency.id%TYPE, par_payment_type IN payment.payment_type%TYPE) AS
+
+var_search_driver_id            driver.id%TYPE;
+var_check_car                   car.id%TYPE;
+var_check_gs_address_id         address.id%TYPE;
+var_check_currency_id           currency.id%TYPE;
+var_payment_id                  payment.id%TYPE;
+var_payment_type                payment.payment_type%TYPE;
+
+BEGIN
+            BEGIN
+                        SELECT car_id, driver_id
+                        INTO var_check_car, var_search_driver_id
+                        FROM rent
+                        WHERE car_id = par_car_id AND date_stop_rent_period IS NULL;
+                        /*поиск указанного в параметре id автомобиля и соответствующего ему id водителя в таблице rent (содержит данные об автомобилях, которые находятся в аренде у водителей) с условием, что поле с датой окончания периода аренды не заполнено и передача результата в переменные var_check_car и var_search_driver_id соответственно;
+                          действие необходимо для проверки существования указанного в параметре id автомобиля среди автомобилей в аренде и определения соответствующего ему id водителя, т.е. если запрос возвращает id, то автомобиль в базе есть и, в данный момент, забронирован водителем, если не возвращает, то инициируется ошибка*/
+            EXCEPTION
+                        WHEN NO_DATA_FOUND
+                        THEN dbms_output.put_line ('Ошибка ' || sqlerrm || ', действие не выполнено, автомобиль с таким id не забронирован ни одним из водителей, либо был снят с бронирования, либо вовсе не существует в базе');
+                        /*обработка ошибки для случев, когда автомобиль с указанным в параметре id не забронирован ни одним из водителей, т.е. записи с таким car_id нет в таблице rent,
+                          либо id автомобиля введен неправильно, т.е. указанного в параметре id нет в таблице car*/
+            END;
+
+            BEGIN
+                        SELECT id
+                        INTO var_check_gs_address_id
+                        FROM address
+                        WHERE id = par_gs_address_id;
+                        /*поиск указанного в параметре id адреса заправки и передача результата в переменную var_check_gs_address_id;
+                          действие необходимо для проверки существование указанного в параметре id адреса, т.е. если запрос возвращает id, то адрес в базе есть, если не возвращает, то инициируется ошибка*/
+            EXCEPTION
+                        WHEN NO_DATA_FOUND
+                        THEN dbms_output.put_line ('Ошибка ' || sqlerrm || ', действие не выполнено, т.к. адреса с таким id не существует в базе');
+                        /*обработка ошибки для случев, когда id адреса заправки введен неправильно, т.е. указанного в параметре id нет в таблице address*/
+            END;
+
+            BEGIN
+                        SELECT id
+                        INTO var_check_currency_id
+                        FROM currency
+                        WHERE id = par_currency_id;
+                        /*поиск указанного в параметре id валюты (которой оплачивалась заправка автомобиля) и передача результата в переменную var_check_currency_id;
+                          действие необходимо для проверки существование указанного в параметре id валюты, т.е. если запрос возвращает id, то наименование валюта в базе есть, если не возвращает, то инициируется ошибка*/
+            EXCEPTION
+                        WHEN NO_DATA_FOUND
+                        THEN dbms_output.put_line ('Ошибка ' || sqlerrm || ', действие не выполнено, т.к. валюты с таким id не существует в базе');
+                        /*обработка ошибки для случев, когда id валюты (которой оплачивалась заправка автомобиля) введен неправильно, т.е. указанного в параметре id нет в таблице currency*/
+            END;
+
+            var_payment_type := UPPER (par_payment_type);            
+
+            IF var_search_driver_id IS NULL OR var_check_car IS NULL OR var_check_gs_address_id IS NULL OR var_check_currency_id IS NULL OR par_amount_of_gas IS NULL OR par_payment IS NULL OR var_payment_type IS NULL
+               THEN RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Для устранения ошибки проверьте отсутствие NULL значений в параметрах при вызове процедуры, либо внесите исправления в соответствии с комментариями об ошибках выше (если они есть)');
+                /*проверка на NULL и инициация вызова ошибки для случев, когда хотя бы в одном из параметров или check переменная, значения которых используются для изменения таблиц, принимает значение NULL;
+                  действие необходимо, т.к. наличие NULL значений будет приводить к ошибке нарушения ограничений целостности таблицы, в которую процедура вносит изменения*/
+               ELSIF var_payment_type NOT IN ('CARD', 'CASH')
+               THEN RAISE_APPLICATION_ERROR (-20005, 'действие не выполнено, т.к. указанный тип (способ) оплаты не соответствует значениям CARD или CASH');
+               /*проверка типа (способа) оплаты и инициация вызова ошибки для случев, когда указанный тип (способ) оплаты введен неправильно, т.е. значение в поле payment_type не совпадает с CARD или CASH*/
+               ELSE 
+                    INSERT INTO payment     (payment_amount,            currency_id,        payment_type)
+								VALUES      (par_payment,               par_currency_id,    var_payment_type)
+                    /*в таблицу payment вставляется новая строка: поля payment_amount, currency_id и payment_type заполняются значениями из параметров par_payment, par_currency_id и par_payment_type соответственно*/
+                    RETURNING id INTO var_payment_id;
+
+                    INSERT INTO refueling   (driver_id,                 car_id,             refueling_payment_id,       amount_gas_refueled,        gas_station_address_id)
+								VALUES      (var_search_driver_id,      par_car_id,         var_payment_id,             par_amount_of_gas,          par_gs_address_id);
+                    /*в таблицу refueling вставляется новая строка: поле driver_id заполняется значением из переменной var_search_driver_id (подтягивается из таблицы rent по id автомобиля), поле refueling_payment_id заполняется значением из переменной var_payment_id (подтягивается автоматически после вставки новой строки в таблицу payment),
+                      а поля car_id, amount_gas_refueled и gas_station_address_id заполняются значениями из параметров par_car_id, par_amount_of_gas и par_gs_address_id соответственно*/
+            END IF;
+
+            COMMIT;
+            DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+
+EXCEPTION
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда хотя бы один параметр или check переменная, значения которых используются для изменения таблиц, принимает значение NULL*/
+
+            WHEN var_error_payment_type
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда тип (способ) оплаты введен неправильно, т.е. значение в поле payment_type не совпадает с CARD или CASH*/
+END car_refueling;
+
+
+/*4) Процедура для создания заказов*/
+PROCEDURE create_order (par_psg_id IN passenger.id%TYPE,
+                        par_from_address IN address.id%TYPE, par_to_address IN VARCHAR2, par_distance IN VARCHAR2,
+                        par_payment IN payment.payment_amount%TYPE, par_currency_id IN currency.id%TYPE, par_payment_type IN payment.payment_type%TYPE) AS
+
+var_tab_address                 pkg_taxi_budarin.tab_address;
+var_tab_distance                pkg_taxi_budarin.tab_distance;
+
+var_from_address                address.id%TYPE;
+var_to_address                  address.id%TYPE;
+var_distance                    way.way_distance%TYPE;
+var_payment_type                payment.payment_type%TYPE;
+var_loop_step                   NUMBER;
+
+var_payment_id                  payment.id%TYPE;
+var_order_id                    orders.id%TYPE;
+var_previous_part_route 	    way.id%TYPE;
+
+var_check_psg_id                passenger.id%TYPE;
+var_check_currency_id           currency.id%TYPE;
+var_check_address               NUMBER;
+
+BEGIN
+            SELECT TO_NUMBER (REGEXP_SUBSTR (REPLACE (par_to_address, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL)) AS address
+            BULK COLLECT INTO var_tab_address
+            FROM dual
+            CONNECT BY REGEXP_SUBSTR (REPLACE (par_to_address, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL) IS NOT NULL;
+            /*подзапрос преобразовывает список id адресов промежуточной(-ых) и конечной точки маршрута, переданный в параметре, в обособленные значения числового формата, распределенные по отдельным строкам, для заполнения коллекции var_tab_address*/
+
+            SELECT TO_NUMBER (REGEXP_SUBSTR (REPLACE (par_distance, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL)) AS distance
+            BULK COLLECT INTO var_tab_distance
+            FROM dual
+            CONNECT BY REGEXP_SUBSTR (REPLACE (par_distance, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL) IS NOT NULL;
+            /*подзапрос преобразовывает список дистанций маршрута (расстояние между начальной и конечной точкой в киллометрах), переданный в параметре, в обособленные значения числового формата, распределенные по отдельным строкам, для заполнения коллекции var_tab_distance*/
+
+            BEGIN
+                        SELECT id
+                        INTO var_check_psg_id
+                        FROM passenger
+                        WHERE id = par_psg_id;
+                        /*поиск указанного в параметре id клиента и передача результата в переменную var_check_psg_id;
+                          действие необходимо для проверки существование указанного в параметре id клиента, т.е. если запрос возвращает id, то клиент в базе есть, если не возвращает, то инициируется ошибка*/
+            EXCEPTION
+                        WHEN NO_DATA_FOUND
+                        THEN dbms_output.put_line ('Ошибка ' || sqlerrm || ', действие не выполнено, т.к. клиента с таким id не существует в базе');
+                        /*обработка ошибки для случев, когда id клиента введен неправильно, т.е. указанного в параметре id нет в таблице passenger*/
+            END;
+
+            BEGIN
+                        SELECT id
+                        INTO var_check_currency_id
+                        FROM currency
+                        WHERE id = par_currency_id;
+                        /*поиск указанного в параметре id валюты (которой оплачивалась заправка автомобиля) и передача результата в переменную var_check_currency_id;
+                          действие необходимо для проверки существование указанного в параметре id валюты, т.е. если запрос возвращает id, то наименование валюта в базе есть, если не возвращает, то инициируется ошибка*/
+            EXCEPTION
+                        WHEN NO_DATA_FOUND
+                        THEN dbms_output.put_line ('Ошибка ' || sqlerrm || ', действие не выполнено, т.к. валюты с таким id не существует в базе');
+                        /*обработка ошибки для случев, когда id валюты (которой оплачивалась заправка автомобиля) введен неправильно, т.е. указанного в параметре id нет в таблице currency*/
+            END;
+
+            SELECT COUNT (address)
+            INTO var_check_address
+            FROM (SELECT TO_NUMBER (par_from_address) AS address
+                  FROM dual
+                  /*подзапрос преобразовывает id адрес начальной точки маршрута, переданной в параметре, в значение числового формата*/
+                  UNION ALL
+                  SELECT TO_NUMBER (REGEXP_SUBSTR (REPLACE (par_to_address, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL)) AS address
+                  FROM dual
+                  CONNECT BY REGEXP_SUBSTR (REPLACE (par_to_address, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL) IS NOT NULL)
+                  /*подзапрос преобразовывает список id адресов промежуточной(-ых) и конечной точки маршрута, переданный в параметре, в обособленные значения числового формата, распределенные по отдельным строкам*/
+                  /*объединение всех id адресов поездки (начальной, промежуточной(-ых) и конечной точки маршрута), переданных в параметрах, для проверки их существования в базе*/
+            WHERE address IN (SELECT id
+                              FROM address);
+                              /*подзапрос для получения списка всех id адресов в базе, т.е. всех id адресов изитаблица address*/
+            /*определение количеста всех id адресов поездки (начальной, промежуточной(-ых) и конечной точки маршрута), совпадающих с id авдресов в базе и передача результата в переменную var_check_address;
+              действие необходимо для проверки существования всех указанных в параметрах id адресов в базе, т.е. если при сравнении количество совпавших id адресов будет соответствовать общему количеству id адресов, переданных в параметрах, то все id введены правильно и существуют в таблице address, если не будет соответствовать, то инициируется ошибка*/
+
+            var_payment_type := UPPER (par_payment_type);
+
+            IF var_check_psg_id IS NULL OR var_check_currency_id IS NULL OR par_payment IS NULL OR var_payment_type IS NULL OR par_from_address IS NULL OR var_tab_address.count() = 0 OR var_tab_distance.count() = 0
+               THEN RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Для устранения ошибки проверьте отсутствие NULL значений в параметрах при вызове процедуры, либо внесите исправления в соответствии с комментариями об ошибках выше (если они есть)');
+                /*проверка на NULL и инициация вызова ошибки для случев, когда хотя бы в одном из параметров или check переменная, значения которых используются для изменения таблиц, принимает значение NULL;
+                  действие необходимо, т.к. наличие NULL значений будет приводить к ошибке нарушения ограничений целостности таблицы, в которую процедура вносит изменения*/
+               ELSIF var_tab_address.count() + 1 != var_check_address
+               THEN RAISE_APPLICATION_ERROR (-20006, 'действие не выполнено, т.к. один или несколько id адресов, указанных в параметрах, не существует в базе');
+               /*проверка соответствия количества совпадающих с базой id адресов из параметров с общим количеством id адресов, переданных в параметрах (т.е. промежуточная (-ые) и конечная точки маршрута, плюс начальной точка маршрута) и инициация вызова ошибки, когда есть несоответствие*/
+               ELSIF var_payment_type NOT IN ('CARD', 'CASH')
+               THEN RAISE_APPLICATION_ERROR (-20005, 'действие не выполнено, т.к. указанный тип (способ) оплаты не соответствует значениям CARD или CASH');
+               /*проверка типа (способа) оплаты и инициация вызова ошибки для случев, когда указанный тип (способ) оплаты введен неправильно, т.е. значение в поле payment_type не совпадает с CARD или CASH*/
+               ELSIF var_tab_address.count() != var_tab_distance.count()
+               THEN RAISE_APPLICATION_ERROR (-20007, 'действие не выполнено, т.к. количество адресов маршрута и количество дистанций между ними (расстояние между начальной и конечной точкой в киллометрах), переданные в параметрах, не совпадают');
+               /*проверка соответствия количества id адресов маршрута количеству дистанций между ними (расстояние в киллометрах между начальной и конечной точкой в киллометрах)*/
+               ELSE
+
+                    INSERT INTO payment     (payment_amount,        currency_id,            payment_type)
+                                VALUES      (par_payment,           par_currency_id,        var_payment_type)
+                    /*в таблицу payment вставляется новая строка: поля payment_amount, currency_id и payment_type заполняются значениями из параметров par_payment, par_currency_id и par_payment_type соответственно*/
+                    RETURNING id INTO var_payment_id;
+
+                    INSERT INTO orders      (passenger_id,          status_order,           payment_order_id)
+                                VALUES      (par_psg_id,            'SEARCH_DRIVER',        var_payment_id)
+                    /*в таблицу orders вставляется новая строка: поле passenger_id заполняется значением из параметра par_psg_id, полю status_order присвается статус SEARCH_DRIVER, поле payment_order_id заполняется значением из переменной var_payment_id (подтягивается автоматически после вставки новой строки в таблицу payment),
+                      а поля driver_id, time_end_order и avg_speed_in_trip остаются пустыми*/
+                    RETURNING id INTO var_order_id;
+
+                    var_from_address := par_from_address;
+                    var_loop_step    := (var_tab_address.count() + var_tab_distance.count()) /2;
+
+                    FOR i IN 1..var_loop_step LOOP
+                        var_to_address  := var_tab_address (i);
+                        var_distance    := var_tab_distance (i);
+
+                        IF  var_from_address = var_to_address
+                        THEN RAISE_APPLICATION_ERROR (-20008, 'действие не выполнено, т.к. id адреса начальной точки маршрута совпадает с id адреса конечной точки маршрута');
+                        /*проверка отличия id адреса начальной точки маршрута от id адреса конечной точки маршрута и инициация вызова ошибки для случев, когда данные id совпадают*/
+                        END IF;
+
+                        INSERT INTO way     (from_address_id,        to_address_id,          way_distance,       order_id,           previous_part_route_id)
+                                    VALUES  (var_from_address,      var_to_address,         var_distance,       var_order_id,       var_previous_part_route)
+                        /*в таблицу way вставляется новая строка: поля from_address_id, to_address_id и way_distance заполняются значениями из параметров par_from_address, par_to_address и par_distance, при этом параметры par_to_address и par_distance могут содержать массивы из нескольких значений,
+                          а поля order_id и previous_part_route_id заполняется значениями из переменных var_order_id (подтягивается автоматически после вставки новой строки в таблицу orders) и var_previous_part_route (подтягивается автоматически после вставки новой строки с помощью цикла в таблицу way) соответственно*/
+                        RETURNING id INTO var_previous_part_route;
+
+                        var_from_address := var_to_address;
+                    END LOOP;
+            END IF;
+
+            COMMIT;
+            DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+
+EXCEPTION
+
+            WHEN invalid_number
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm || 'действие не выполнено, т.к. одно или несколько значений id адреса и/или дистанции маршрута (расстояние между начальной и конечной точкой в киллометрах), указанные в параметрах, введены не в числовом формате');
+            /*обработка ошибки для случев, когда одно или несколько значений id адреса и/или дистанции маршрута не определяются, как число*/
+
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда хотя бы один параметр или check переменная, значения которых используются для изменения таблиц, принимает значение NULL*/
+
+            WHEN var_error_address
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда количество совпадающих с базой id адресов из параметров не соответствует общему количеству id адресов, переданных в параметрах (т.е. промежуточная (-ые) и конечная точки маршрута, плюс начальной точка маршрута)*/
+
+            WHEN var_error_payment_type
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда тип (способ) оплаты введен неправильно, т.е. значение в поле payment_type не совпадает с CARD или CASH*/
+
+            WHEN var_error_qty_values
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда количество id адресов маршрута не соответствует количеству дистанций между ними (расстояние в киллометрах между начальной и конечной точкой в киллометрах)*/
+
+            WHEN var_error_repeat_address
+            THEN ROLLBACK;
+                 dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда id адреса начальной точки маршрута совпадает с id адреса конечной точки маршрута и откат внесенных изменения*/
+END;
+
+
+/*5) Процедура для обновления рейтинга клиента*/
+PROCEDURE update_rating_psg (par_period_in_days IN NUMBER) AS
+
+CURSOR cur_update_rating_psg IS
+       SELECT passenger_id, AVG (rating_psg_from_drv) AS avg_rating_psg
+       FROM rating_driver2passenger
+       WHERE time_create >= TO_CHAR (TRUNC (SYSDATE) - par_period_in_days, 'dd.mm.yyyy hh24:mi:ss')
+       GROUP BY passenger_id;
+       /*подзапрос для определения средних оценок (среднее арифметическое всех оценок от водителей по итогам поездок) каждого клиента за указанный в параметре период в днях;
+         объявляется, как явный курсор*/
+BEGIN
+            IF par_period_in_days IS NULL
+               THEN RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. параметр принимают значение NULL');
+                /*проверка на NULL и инициация вызова ошибки для случев, когда параметр принимает значение NULL*/
+            END IF;
+
+            FOR i IN cur_update_rating_psg LOOP
+
+                UPDATE passenger_rating SET   total_rating_psg = i.avg_rating_psg
+                                        WHERE passenger_id = i.passenger_id;
+               /*в таблице passenger_rating обовляется поле total_rating_psg, которое принимает значение средней оценки (среднее арифметическое всех оценок от водителей по итогам поездок) за указанный в параметре период в днях*/
+
+            END LOOP;
+
+            COMMIT;
+            DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+
+EXCEPTION
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда параметр принимает значение NULL*/
+END;
+
+
+/*6) Процедура для обновления рейтинга водителя*/
+PROCEDURE update_rating_drv (par_period_in_days IN NUMBER) AS
+
+CURSOR cur_update_rating_drv IS
+       SELECT driver_id, AVG (rating_drv_from_psg) AS avg_rating_drv
+       FROM rating_passenger2driver
+       WHERE time_create >= TO_CHAR (TRUNC (SYSDATE) - par_period_in_days, 'dd.mm.yyyy hh24:mi:ss')
+       GROUP BY driver_id;
+       /*подзапрос для определения средних оценок (среднее арифметическое всех оценок от клиентов по итогам поездок) каждого водителя за указанный в параметре период в днях;
+         объявляется, как явный курсор*/
+BEGIN
+            IF par_period_in_days IS NULL
+               THEN RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. параметр принимают значение NULL');
+                /*проверка на NULL и инициация вызова ошибки для случев, когда параметр принимает значение NULL*/
+            END IF;
+
+            FOR i IN cur_update_rating_drv LOOP
+
+                UPDATE driver_rating SET   total_rating_drv = i.avg_rating_drv
+                                     WHERE driver_id = i.driver_id;
+               /*в таблице driver_rating обовляется поле total_rating_drv, которое принимает значение средней оценки (среднее арифметическое всех оценок от клиентов по итогам поездок) за указанный в параметре период в днях*/
+
+            END LOOP;
+
+            COMMIT;
+            DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+
+EXCEPTION
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда параметр принимает значение NULL*/
+END;
+
+
+/*7) Процедура для внесения данных о водителях в таблицы driver, driver_rating и driver_image*/
+PROCEDURE create_drv (par_name IN driver.drv_name%TYPE, par_age IN driver.drv_age%TYPE,
+                      par_email IN driver.drv_email%TYPE, par_phone_number IN driver.drv_phone_number%TYPE, par_percent_of_payment IN driver.drv_percent_of_payment%TYPE) AS
+
+var_driver_id                   driver.id%TYPE;
+
+var_check_email                 driver.drv_email%TYPE;
+var_check_phone                 driver.drv_phone_number%TYPE;
+
+BEGIN
+                    SELECT COUNT (drv_email)
+                    INTO var_check_email
+                    FROM driver
+                    WHERE drv_email = REPLACE (par_email, ' ', '');
+                    /*определение количества email в базе, совпадающих с email водителя, указанного в параметре и передача результата в переменную var_check_email*/
+
+                    SELECT COUNT (drv_phone_number)
+                    INTO var_check_phone
+                    FROM driver
+                    WHERE drv_phone_number = REPLACE (par_phone_number, ' ', '');
+                    /*определение количества телефонных номеров в базе, совпадающих с номером телефона водителя, указанного в параметре и передача результата в переменную var_check_phone*/
+
+
+                    IF par_name IS NULL OR par_age IS NULL OR par_email IS NULL OR par_phone_number IS NULL OR par_percent_of_payment IS NULL
+                       THEN  RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Для устранения ошибки проверьте отсутствие NULL значений в параметрах при вызове процедуры, либо внесите исправления в соответствии с комментариями об ошибках выше (если они есть)');
+                       /*проверка на NULL и инициация вызова ошибки для случев, когда хотя бы в одном из параметров или check переменная, значения которых используются для изменения таблиц, принимает значение NULL;
+                         действие необходимо, т.к. наличие NULL значений будет приводить к ошибке нарушения ограничений целостности таблицы, в которую процедура вносит изменения*/
+                       ELSIF var_check_email > 0
+                       THEN  RAISE_APPLICATION_ERROR (-20010, 'действие не выполнено, т.к. пользователь с таким адресом электронной почты уже зарегистрирован');
+                       /*проверка уникальности email клиента, указанного в параметре и инициация вызова ошибки для случев, когда количество email в базе (таблице driver), совпадающих с email водителя, указанном в параметре, больше 0, т.е. совпадения существуют*/
+                       ELSIF var_check_phone > 0
+                       THEN  RAISE_APPLICATION_ERROR (-20011, 'действие не выполнено, т.к. пользователь с таким номером телефона уже зарегистрирован');
+                       /*проверка уникальности номера телефона клиента, указанного в параметре и инициация вызова ошибки для случев, когда количество телефонных номеров в базе (таблице driver), совпадающих с номером телефона водителя, указанном в параметре, больше 0, т.е. совпадения существуют*/
+                       ELSE
+                             INSERT INTO driver          (drv_name,      drv_age,        drv_email,      drv_phone_number,       drv_percent_of_payment)
+                                         VALUES          (par_name,      par_age,        par_email,      par_phone_number,       par_percent_of_payment)
+                             /*в таблицу driver вставляется новая строка: поля drv_name, drv_age, drv_email, drv_phone_number и drv_percent_of_payment заполняются значениями из
+                               параметров par_name, par_age, par_email, par_phone_number, par_percent_of_payment соответственно*/
+                             RETURNING id INTO var_driver_id;
+
+                             INSERT INTO driver_rating   (driver_id)
+                                         VALUES          (var_driver_id);
+                             /*в таблицу driver_rating вставляется новая строка: поле id заполняется из переменной var_driver_id (подтягивается автоматически после вставки новой строки в таблицу driver)*/
+
+                             INSERT INTO driver_image    (driver_id)
+                                         VALUES          (var_driver_id);
+                             /*в таблицу driver_rating вставляется новая строка: поле id заполняется из переменной var_driver_id (подтягивается автоматически после вставки новой строки в таблицу driver)*/
+
+                             END IF;
+
+                      COMMIT;
+                      DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+
+EXCEPTION
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда хотя бы один параметр или check переменная, значения которых используются для изменения таблиц, принимает значение NULL*/
+
+            WHEN var_error_email
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда email водителя, указанного в параметре, совпадает с одним из email в базе (таблице driver)*/
+
+            WHEN var_error_phone
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда номер телефона водителя, указанного в параметре, совпадает с одним из номеров телефона в базе (таблице driver)*/
+END;
+
+
+/*8) Процедура для внесения данных о клиентах в таблицы passenger, passenger_rating и passenger_image*/
+PROCEDURE create_psg (par_name IN passenger.psg_name%TYPE, par_age IN passenger.psg_age%TYPE, par_address IN passenger.psg_home_address_id%TYPE,
+                      par_email IN passenger.psg_email%TYPE, par_phone_number IN passenger.psg_phone_number%TYPE, par_male IN passenger.psg_is_male%TYPE) AS
+
+var_passenger_id                passenger.id%TYPE;
+
+var_check_phone                 passenger.psg_phone_number%TYPE;
+var_check_email                 passenger.psg_email%TYPE;
+var_check_address               address.id%TYPE;
+
+BEGIN
+                    SELECT COUNT (psg_phone_number)
+                    INTO var_check_phone
+                    FROM passenger
+                    WHERE psg_phone_number = REPLACE (par_phone_number, ' ', '');
+                    /*определение количества телефонных номеров в базе, совпадающих с номером телефона клиента, указанного в параметре и передача результата в переменную var_check_phone*/
+
+                    IF var_check_phone > 0
+                       THEN  RAISE_APPLICATION_ERROR (-20009, 'действие не выполнено, т.к. пользователь с таким номером телефона уже зарегистрирован');
+                       /*проверка уникальности номера телефона клиента, указанного в параметре и инициация вызова ошибки для случев, когда количество телефонных номеров в базе (таблице passenger), совпадающих с номером телефона клиента, указанном в параметре, больше 0, т.е. совпадения существуют*/
+                       ELSIF par_name IS NULL AND par_age IS NULL AND par_address IS NULL AND par_email IS NULL AND par_male IS NULL AND par_phone_number IS NOT NULL
+                       THEN
+                             INSERT INTO passenger           (psg_is_anonymous,     psg_name,       psg_age,        psg_home_address_id,        psg_email,      psg_phone_number,       psg_is_male)
+                                         VALUES              (1,                    NULL,           NULL,           par_phone_number,           NULL,           NULL,                   NULL)
+                             /*в таблицу passenger вставляется новая строка: поле psg_is_anonymous принимает 1 (TRUTH - истина), поле psg_home_address_id заполняется значением из параметра par_phone_number,
+                               а остальные поля (psg_name, psg_age, psg_home_address_id, psg_email и psg_is_male) заполняются значениями NULL*/
+                             RETURNING id INTO var_passenger_id;
+
+                             INSERT INTO passenger_rating     (passenger_id)
+                                         VALUES               (var_passenger_id);
+                             /*в таблицу passenger_rating вставляется новая строка: поле id заполняется из переменной var_passenger_id (подтягивается автоматически после вставки новой строки в таблицу passenger)*/
+
+
+                       ELSIF par_name IS NULL OR par_age IS NULL OR par_address IS NULL OR par_email IS NULL OR par_phone_number IS NULL OR par_male IS NULL
+                       THEN  RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Если пользователь авторизован, то все параметры, при вызове процедуры должны быть заплнены, если же пользователь не авторизован, то все параметры, кроме номера телефона, должны быть переданы, как NULL значения');
+                       /*проверка на NULL и инициация вызова ошибки для случев, когда:
+                         - хотя бы один из параметров, кроме номера телефона клиента принимает значение не NULL (сценарий для не авторизованных пользователей);
+                         - хотя бы один из параметров принимает значение NULL (сценарий для авторизованных пользователей)
+                         Действие необходимо, для передачи правильного набора данных для авторизованных и не авторизованных пользователей*/
+
+                       ELSE
+                             BEGIN
+                                     SELECT COUNT (psg_email)
+                                     INTO var_check_email
+                                     FROM passenger
+                                     WHERE psg_email = REPLACE (par_email, ' ', '');
+                                     /*определение количества email в базе, совпадающих с email клиента, указанного в параметре и передача результата в переменную var_check_email*/
+
+                                     SELECT COUNT (id)
+                                     INTO var_check_address
+                                     FROM address
+                                     WHERE id = par_address;
+                                     /*определение количества id адресов в базе, совпадающих с id адреса клиента, указанного в параметре и передача результата в переменную var_check_phone*/
+
+                                     IF var_check_email > 0
+                                        THEN  RAISE_APPLICATION_ERROR (-20009, 'действие не выполнено, т.к. пользователь с таким адресом электронной почты уже зарегистрирован');
+                                        /*проверка уникальности email клиента, указанного в параметре и инициация вызова ошибки для случев, когда количество email в базе (таблице passenger), совпадающих с email клиента, указанном в параметре, больше 0, т.е. совпадения существуют*/
+                                        ELSIF var_check_address != 1
+                                        THEN  RAISE_APPLICATION_ERROR (-20006, 'действие не выполнено, т.к. адреса с таким id не существует в базе');
+                                        /*проверка уникальности id адеса клиента, указанного в параметре и инициация вызова ошибки для случев, когда количество id адресов в базе (таблице address), совпадающих с id адресом клиента, указанном в параметре, больше 0, т.е. совпадения существуют*/
+                                        ELSIF par_male NOT IN (1, 0)
+                                        THEN  RAISE_APPLICATION_ERROR (-20013, 'действие не выполнено, т.к. в параметре указан неправльный идентификатор пола клиента, допустимые идентификаторы: 1 - мужчина, 0 - женщина');
+                                        /*проверка доустимых значений для идентификатора пола клиента и инициация вызова ошибки для случев, когда идентификатор пола клиента не соответствует значениям 1 (мужчина) или 0 (женщина)*/
+                                        ELSE
+                                              INSERT INTO passenger           (psg_is_anonymous,     psg_name,       psg_age,        psg_home_address_id,        psg_email,      psg_phone_number,       psg_is_male)
+                                                          VALUES              (0,                    par_name,       par_age,        par_address,                par_email,      par_phone_number,       par_male)
+                                              /*в таблицу passenger вставляется новая строка: поле psg_is_anonymous принимает 0 (FALSE - ложь), поля psg_name, psg_age, psg_home_address_id, psg_email, psg_phone_number и psg_is_male
+                                                заполняются значениями из параметров par_name, par_age, par_address, par_email, par_phone_number и par_male соответственно*/
+                                              RETURNING id INTO var_passenger_id;
+
+                                              INSERT INTO passenger_rating     (passenger_id)
+                                                          VALUES               (var_passenger_id);
+                                              /*в таблицу passenger_rating вставляется новая строка: поле id заполняется из переменной var_passenger_id (подтягивается автоматически после вставки новой строки в таблицу passenger)*/
+
+                                              INSERT INTO passenger_image      (passenger_id)
+                                                          VALUES               (var_passenger_id);
+                                              /*в таблицу passenger_rating вставляется новая строка: поле id заполняется из переменной var_passenger_id (подтягивается автоматически после вставки новой строки в таблицу passenger)*/
+                                     END IF;
+                             END;
+                    END IF;
+
+                    COMMIT;
+                    DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+EXCEPTION
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда:
+              - хотя бы один из параметров, кроме номера телефона клиента принимает значение не NULL (сценарий для не авторизованных пользователей);
+              - хотя бы один из параметров принимает значение NULL (сценарий для авторизованных пользователей)*/
+
+            WHEN var_error_phone
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда номер телефона клиента, указанного в параметре, совпадает с одним из номеров телефона в базе (таблице passenger)*/
+
+            WHEN var_error_email
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда email клиента, указанного в параметре, совпадает с одним из email в базе (таблице passenger)*/
+
+            WHEN var_error_address
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда id адреса клиента введен неправильно, т.е. указанного в параметре id нет в таблице address*/
+
+            WHEN var_error_male_id
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда идентификатор пола клиента не соответствует значениям 1 (мужчина) или 0 (женщина)*/
+
+END;
+
+
+/*9) Процедура для внесения оценки водителя от клиента по завершении поездки*/
+PROCEDURE insert_trip_rating_for_drv (par_order_id IN orders.id%TYPE, par_trip_rating IN rating_passenger2driver.rating_drv_from_psg%TYPE) AS
+
+var_driver_id                   driver.id%TYPE;
+var_passenger_id                passenger.id%TYPE;
+
+var_check_order                 orders.id%TYPE;
+
+BEGIN
+            SELECT id, passenger_id, driver_id
+            INTO var_check_order, var_passenger_id, var_driver_id
+            FROM orders
+            WHERE id = par_order_id;
+            /*поиск указанного в параметре id номера заказа и передача результата в переменную var_check_order;
+              действие необходимо для проверки существования в базе id номера заказа, т.е. если запрос возвращает id, то номера заказа в базе есть, если не возвращает, то инициируется ошибка*/
+
+            IF var_check_order IS NULL OR par_trip_rating IS NULL
+               THEN  RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Для устранения ошибки проверьте отсутствие NULL значений в параметрах при вызове процедуры, либо внесите исправления в соответствии с комментариями об ошибках выше (если они есть)');
+                     /*проверка на NULL и инициация вызова ошибки для случев, когда хотя бы в одном из параметров или check переменная, значения которых используются для изменения таблиц, принимает значение NULL;
+                       действие необходимо, т.к. наличие NULL значений будет приводить к ошибке нарушения ограничений целостности таблицы, в которую процедура вносит изменения*/
+               ELSIF ROUND (par_trip_rating) NOT BETWEEN 1 AND 5
+               THEN RAISE_APPLICATION_ERROR (-20012, 'действие не выполнено, т.к. оценка выставляется по 5-ти бальной шкале, т.е. допустимый интервал оценки от 1 до 5');
+                    /*проверка оценки водителя от клиента, указанной в параметре, на соответствие интервалу от 1 до 5 и инициация вызова ошибки для случев, когда оценка не попадает в заданный интервал*/
+               ELSE
+                    INSERT INTO rating_passenger2driver     (passenger_id,          driver_id,          order_id,           rating_drv_from_psg)
+                                VALUES                      (var_passenger_id,      var_driver_id,      par_order_id,       par_trip_rating);
+                    /*в таблицу rating_passenger2driver вставляется новая строка: поля order_id и rating_drv_from_psg заполняются значениями из параметров par_order_id и par_trip_rating соответственно,
+                      а поля passenger_id и driver_id заполняются значениями из переменных var_passenger_id (подтягивается автоматически из таблицы orders по значению id заказа в par_order_id) и var_driver_id (подтягивается автоматически из таблицы orders по значению id заказа в par_order_id) соответственно*/
+               END IF;
+
+            COMMIT;
+            DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+
+EXCEPTION
+
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда хотя бы один параметр или check переменная, значения которых используются для изменения таблиц, принимает значение NULL*/
+
+            WHEN NO_DATA_FOUND
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда id номера заказа введен неправильно, т.е. указанного в параметре id нет в таблице orders*/
+
+            WHEN var_error_rating
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда оценка водителя от клиента не попадает в интервал от 1 до 5*/
+END;
+
+
+/*10) Процедура для внесения оценки клиента от водителя по завершении поездки*/
+PROCEDURE insert_trip_rating_for_psg (par_order_id IN orders.id%TYPE, par_trip_rating IN rating_passenger2driver.rating_drv_from_psg%TYPE) AS
+
+var_driver_id                   driver.id%TYPE;
+var_passenger_id                passenger.id%TYPE;
+
+var_check_order                 orders.id%TYPE;
+
+BEGIN
+            SELECT id, passenger_id, driver_id
+            INTO var_check_order, var_passenger_id, var_driver_id
+            FROM orders
+            WHERE id = par_order_id;
+            /*поиск указанного в параметре id номера заказа и передача результата в переменную var_check_order;
+              действие необходимо для проверки существования в базе id номера заказа, т.е. если запрос возвращает id, то номера заказа в базе есть, если не возвращает, то инициируется ошибка*/
+
+            IF var_check_order IS NULL OR par_trip_rating IS NULL
+               THEN  RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Для устранения ошибки проверьте отсутствие NULL значений в параметрах при вызове процедуры, либо внесите исправления в соответствии с комментариями об ошибках выше (если они есть)');
+                     /*проверка на NULL и инициация вызова ошибки для случев, когда хотя бы в одном из параметров или check переменная, значения которых используются для изменения таблиц, принимает значение NULL;
+                       действие необходимо, т.к. наличие NULL значений будет приводить к ошибке нарушения ограничений целостности таблицы, в которую процедура вносит изменения*/
+               ELSIF ROUND (par_trip_rating) NOT BETWEEN 1 AND 5
+               THEN RAISE_APPLICATION_ERROR (-20012, 'действие не выполнено, т.к. оценка выставляется по 5-ти бальной шкале, т.е. допустимый интервал оценки от 1 до 5');
+                    /*проверка оценки клиента от водителя, указанной в параметре, на соответствие интервалу от 1 до 5 и инициация вызова ошибки для случев, когда оценка не попадает в заданный интервал*/
+               ELSE
+                    INSERT INTO rating_driver2passenger     (passenger_id,          driver_id,          order_id,           rating_psg_from_drv)
+                                VALUES                      (var_passenger_id,      var_driver_id,      par_order_id,       par_trip_rating);
+                    /*в таблицу rating_driver2passenger вставляется новая строка: поля order_id и rating_psg_from_drv заполняются значениями из параметров par_order_id и par_trip_rating соответственно,
+                      а поля passenger_id и driver_id заполняются значениями из переменных var_passenger_id (подтягивается автоматически из таблицы orders по значению id заказа в par_order_id) и var_driver_id (подтягивается автоматически из таблицы orders по значению id заказа в par_order_id) соответственно*/
+               END IF;
+
+            COMMIT;
+            DBMS_OUTPUT.PUT_LINE ('Данные успешно внесены в БД!         '  || TO_CHAR (SYSDATE, 'dd.mm.yyyy hh24:mi:ss'));
+
+EXCEPTION
+
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда хотя бы один параметр или check переменная, значения которых используются для изменения таблиц, принимает значение NULL*/
+
+            WHEN NO_DATA_FOUND
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда id номера заказа введен неправильно, т.е. указанного в параметре id нет в таблице orders*/
+
+            WHEN var_error_rating
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда оценка клиента от водителя не попадает в интервал от 1 до 5*/
+END;
+
+
+/*11) Конвейерная функци для расчета зарплаты за месяц для каждого водителя*/
+FUNCTION payroll_calculation_drv (par_month IN NUMBER, par_year IN NUMBER) RETURN tbl_salary_drv PIPELINED AS
+
+var_salary_drv      rec_salary_drv;
+
+CURSOR  cur_salary_drv IS
+        SELECT all_transactions_on_date.id, name, SUM (payment_amount_rub * drv_percent) AS salary
+        /*финальный результирующий набор данных после группировки с данными о зарплате в указанный месяц и год в разрезе каждго водителя
+          сумма зарплаты считается суммированием всех доходов и расходов, при этом, каждое значение дохода предварительно умножаются на процент водителя с заказа, чтобы вычесть комиссию сервиса, а каждое значение расхода предварительно умножаются на -1*/
+        FROM (SELECT driver.id, drv_name AS name, (drv_percent_of_payment / 100) AS drv_percent, payment_order_id AS payment_id
+              FROM driver LEFT JOIN orders ON driver.id = orders.driver_id
+              WHERE EXTRACT (MONTH FROM time_create_order) = par_month AND EXTRACT (YEAR FROM time_create_order) = par_year AND status_order = 'CANCELED'
+              /*запрос на получение данных о водителях (id, ФИО и процент дохода с каждого заказа) и id платежей по всем выполненным заказам для указанных в параметрах месяца и года (т.е. все доходы водителей в указанный месяц и год от заказов без вычета комиссии сервиса)*/
+              UNION ALL
+              /*объединение данных о доходах с данными о расходах и создание общей таблицы с данными о всех водителях и их транзакциях в заданный меся и год*/
+              SELECT driver.id, drv_name AS name, -1 AS drv_percent, refueling_payment_id AS payment_id
+              FROM driver JOIN refueling ON driver.id = refueling.driver_id
+              WHERE EXTRACT (MONTH FROM time_create) = par_month AND EXTRACT (YEAR FROM time_create) = par_year) all_transactions_on_date
+              /*запрос на получение данных о водителях (id и ФИО) и id платежей по всем тратам на заправку автомобилей для указанных в параметрах месяца и года (т.е. все расходы водителей в указанный месяц и год);
+                результ запроса дополнен искуственно созданным полем drv_percent со значением -1 для получения возможности объединения с данными о доходах (т.е. для равенства количества столбцов) и маркировки значений (т.е. для понимания, какие id платежей принесли доход, а какие расход)*/
+              JOIN
+
+                   (SELECT id, CASE WHEN currency_id = 1
+                                    THEN payment_amount
+                                    ELSE payment_amount * rate_to_ruble
+                               END payment_amount_rub
+                               /*перевод всех платежей в рубли (с помощью условного оператора CASE), т.е. если id валюты был 1 (рубли), то значеие суммы платежа не меняется, если же id валюты не равно 1 (любая другая вылюта), то сумма платежа пересчитывается умножением на курс указанной валюты к рублю*/
+                    FROM (SELECT id, payment_amount, currency_id
+                          FROM payment
+                          WHERE EXTRACT (MONTH FROM payment.time_create) = par_month AND EXTRACT (YEAR FROM payment.time_create) = par_year) payment_on_date
+                          /*запрос для получения id всех платежей для заданного месяца*/
+                          LEFT JOIN
+                          /*объединение таблицы с id всех платежей и таблицы с курсами валют к рублю по id валюты, т.е. к id и сумме платежа подтягивается значение стоимости валюты относительно рубля*/
+                               (SELECT DISTINCT currency_id_1, FIRST_VALUE (rate_cur_1_to_cur_2) OVER (PARTITION BY currency_id_1 ORDER BY time_create DESC) AS rate_to_ruble
+                                FROM rate
+                                WHERE currency_id_2 = 1 AND time_create < TO_DATE ((par_month + 1) || '.' || par_year, 'mm.yyyy')) rate_on_date
+                                /*запрос для получения стоимости каждой валюты относительно рубля на заданный месяц или ранее;
+                                  полученный список значений после фильтра (WHERE) разбивается аналитической функцией на группы по id валюты и из каждой группы выбирается только одно значений с самой поздней датой*/
+                          ON payment_on_date.currency_id = rate_on_date.currency_id_1) payment_rub_on_date
+              ON all_transactions_on_date.payment_id = payment_rub_on_date.id
+        GROUP BY all_transactions_on_date.id, name;
+
+BEGIN   
+        IF par_month IS NULL OR par_year IS NULL
+           THEN  RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL)');
+           /*проверка на NULL и инициация вызова ошибки для случев, когда параметр принимает значение NULL*/
+        END IF;
+
+        FOR i IN cur_salary_drv LOOP
+
+            var_salary_drv := NULL;
+
+            var_salary_drv.id := i.id;
+            var_salary_drv.name := i.name;
+            var_salary_drv.salary := i.salary;
+            var_salary_drv.time_create := SYSDATE;
+
+        PIPE ROW (var_salary_drv);
+
+        END LOOP;
+RETURN;
+
+EXCEPTION
+            WHEN var_error_nulls_in_par
+            THEN dbms_output.put_line ('Ошибка ' || sqlerrm);
+            /*обработка ошибки для случев, когда параметр принимает значение NULL*/
+
+END;
+
+END pkg_taxi_budarin;

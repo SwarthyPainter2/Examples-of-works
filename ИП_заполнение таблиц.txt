@@ -1,0 +1,854 @@
+1) Таблица country
+
+INSERT INTO country     (country_name)
+            VALUES      ('Россия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Украина');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Белоруссия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Казахстан');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Армения');
+
+INSERT INTO country     (country_name)
+            VALUES      ('США');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Франция');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Германия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Англия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Нидерланды');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Китай');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Турция');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Япония');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Швейцария');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Польша');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Италия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Испания');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Португалия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Бельгия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Греция');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Чехия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Швеция');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Австрия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Дания');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Ирландия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Хорватия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Финляндия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Кипр');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Словения');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Словакия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Литва');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Латвия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Эстония');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Люксембург');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Болгария');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Венгрия');
+
+INSERT INTO country     (country_name)
+            VALUES      ('Румыния');
+			
+
+2) Таблица city
+
+INSERT INTO city    (city_name,		country_id)
+            VALUES      ('Москва',	1);
+
+INSERT INTO city   (city_name,		country_id)
+            VALUES      ('Киев', 	2);
+
+INSERT INTO city     (city_name, 	country_id)
+            VALUES      ('Минск', 	3);
+
+INSERT INTO city     (city_name, 	country_id)
+            VALUES      ('Астана', 	4);
+
+INSERT INTO city     (city_name, 	country_id)
+            VALUES      ('Ереван', 	5);
+
+
+3) Таблица street
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Гагаринский переулок',			1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Овчинниковская набережная',		1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Саринский проезд', 				1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Малая Бронная улица', 			1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Пречистенский переулок', 			1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Чистый переулок', 				1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Пушкинская улица', 				1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Луговой проезд', 					1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Петровско-Разумовский проезд',	1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Хрущевский переулок', 			1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Мясницкая улица', 				1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('улица Остоженка', 				1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Таганская улица', 				1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Климентовский переулок', 			1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('Новый Арбат улица', 				1);
+
+INSERT INTO	street  (street_name, 						city_id)
+            VALUES  ('улица Верхние Поля', 				1);
+
+
+4) Таблица address
+
+INSERT INTO	address     (house_number,	street_id)
+            VALUES      (13, 			1);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('1/5', 		1);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (7, 			2);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('2А', 			2);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (13, 			3);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (19, 			3);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('2Б', 			4);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('2/1', 		4);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (45, 			4);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (23, 			4);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (2, 			5);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (5, 			5);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('13/3', 		6);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('19В', 		6);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (16, 			7);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (17, 			7);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('5А', 			8);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('7А', 			8);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (18, 			9);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (17, 			9);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (17, 			10);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('17/2', 		10);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (11, 			11);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (7, 			11);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (13, 			12);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (5, 			12);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('5А', 			13);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('5/1', 		13);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (7, 			14);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (13, 			15);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      (27, 			15);
+
+INSERT INTO	address     (house_number, 	street_id)
+            VALUES      ('39Ас1', 		17);
+
+
+5) Таблица parking
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (1,                 17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (2,                 17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (3,                 17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (4,                 17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (5,                 17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (6,                 17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (7,                 17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (8,                 17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (9,                 17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (10,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (11,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (12,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (13,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (14,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (15,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (16,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (17,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (18,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (19,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (20,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (21,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (22,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (23,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (24,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (25,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (26,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (27,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (28,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (29,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (30,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (31,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (32,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (33,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (34,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (35,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (36,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (37,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (38,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (39,                17);
+
+INSERT INTO	parking     (parking_number,    parking_address_id)
+            VALUES      (40,                17);
+
+
+6) Таблица car
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Kia',             'Rio',          'Yellow',       'О 298 Х А',            1,              458,                    'CAR_READY_TO_USE',     'ECONOMY_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Volkswagen',      'Polo',         'Yellow',       'У 101 Т Е',            2,              183,                    'CAR_READY_TO_USE',     'ECONOMY_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Mazda',           'CX-7',         'Grey',         'А 874 Е О',            3,              79,                     'CAR_READY_TO_USE',     'ECONOMY_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Audi',            'A6',           'White',        'Н 782 Т К',            4,              377,                    'CAR_READY_TO_USE',     'COMFORT_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Skoda',           'Octavia',      'Green',        'Е 106 Х М',            5,              63,                     'CAR_READY_TO_USE',     'COMFORT_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('BMW',             '5ER',          'Blue',         'Р 241 М К',            6,              315,                    'CAR_READY_TO_USE',     'COMFORT_PLUS_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Infiniti',        'Q70',          'Red',          'В 887 Т Х',            7,              125,                    'CAR_READY_TO_USE',     'COMFORT_PLUS_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('BMW',             'E60',          'White',        'О 526 Н А',            8,              216,                    'CAR_READY_TO_USE',     'BUSINESS_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Mercedes-Benz',   'E300',         'Black',        'Е 906 К У',            9,              73,                     'CAR_READY_TO_USE',     'BUSINESS_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Audi',            'A8',           'White',        'С 713 Р Т',            10,             114,                    'CAR_READY_TO_USE',     'PREMIER');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('BMW',             '7ER',          'Black',        'Х 675 О Р',            11,             175,                    'CAR_READY_TO_USE',     'PREMIER');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Hyundai',         'Solaris',      'Grey',         'А 782 Т Х',            12,             103,                    'CAR_UNDER_REPAIR',     'ECONOMY_CLASS');
+
+INSERT INTO car     (brand_car,         model_car,      color_car,      state_number_car,       parking_id,     current_mileage_car,    car_status,             car_class)
+            VALUES  ('Hyundai',         'Elantra',      'Yellow',       'Т 681 В А',            2,              185,                    'CAR_READY_TO_USE',     'COMFORT_CLASS');
+
+7) Таблица currency
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Российский рубль',        'RUB');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Доллар США',              'USD');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Евро',                    'EUR');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Швейцарский франк',       'CHF');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Фунт стерлингов',         'GBP');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Японская йена',           'JPY');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Гривна',                  'UAH');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Казахстанский тенге',     'KZT');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Белорусский рубль',       'BYN');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Турецкая лира',           'TRY');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Китайский юань',          'CNY');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Польский злотый',         'PLN');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Армянский драм',          'AMD');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Датская крона',           'DKK');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Шведская крона',          'SEK');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Чешская крона',           'CZK');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Венгерский форинт',       'HUF');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Румынский лей',           'RON');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Хорватская куна',         'HRK');
+
+INSERT INTO	currency    (currency_name,             currency_abbreviation)
+            VALUES      ('Болгарский лев',          'BGN');
+
+
+8) Таблица driver
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Романов Кирилл Артёмович',        25,         'zoddoyuxutoi-9322@yopmail.com',        '+7 (967) 391-54-35',   	73,                         '23.02.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Тихонов Мирон Романович',         47,         'sacaugapreucru-8258@yopmail.com',      '+7 (942) 653-55-34',   	70,                         '30.06.2021');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Гончаров Али Михайлович',         34,         'quoicrattattella-3342@yopmail.com',    '+7 (968) 149-99-56',   	74,                         '19.03.2022');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Пахомов Лев Алексеевич',          19,         'gragrowoibraffe-8774@yopmail.com',     '+7 (954) 798-47-36',   	75,                         '21.11.2020');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Семин Дмитрий Кириллович',        29,         'kavetrowohoi-8231@yopmail.com',        '+7 (982) 326-92-12',   	75,                         '03.09.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Гордеев Дмитрий Русланович',      33,         'brounnowewuttoi-9466@yopmail.com',     '+7 (951) 881-83-58',   	77,                         '14.04.2022');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Миронов Константин Петрович',     29,         'trefrakunnadda-7982@yopmail.com',      '+7 (906) 610-77-25',   	76,                         '15.01.2022');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Степанов Тимур Богданович',       21,         'brujicreddomme-3440@yopmail.com',      '+7 (986) 889-16-46',   	77,                         '30.06.2021');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Галкин Алексей Константинович',   34,         'xefeddiquire-5290@yopmail.com',        '+7 (993) 131-65-26',   	75,                         '31.03.2021');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Прохоров Глеб Максимович',        41,         'jivacallehau-1254@yopmail.com',        '+7 (980) 868-27-66',   	71,                         '01.05.2022');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Соболев Максим Львович',          52,         'quahannadikoi-1573@yopmail.com',       '+7 (938) 605-54-92',   	73,                         '24.06.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Пахомов Иван Глебович',           43,         'wabapamelli-3766@yopmail.com',         '+7 (994) 533-41-21',   	74,                         '30.03.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Антонов Глеб Андреевич',          26,         'jaquemiquoppe-5231@yopmail.com',       '+7 (968) 272-55-36',   	80,                         '23.07.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Сергеев Руслан Иванович',         47,         'gapeddottowa-4434@yopmail.com',        '+7 (950) 580-22-70',   	79,                         '14.11.2022');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Куликов Михаил Георгиевич',       27,         'kiloleiddoijau-2286@yopmail.com',      '+7 (967) 597-97-21',   	78,                         '17.01.2021');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Зуев Алексей Тимофеевич',         35,         'fevikohuquau-5891@yopmail.com',        '+7 (955) 994-85-23',   	78,                         '13.08.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Гончаров Тимофей Михайлович',     43,         'crannoyeppeffoi-4614@yopmail.com',     '+7 (918) 843-89-82',   	76,                         '24.05.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Сергеев Михаил Владиславович',    39,         'yopennauveta-7765@yopmail.com',        '+7 (915) 705-27-68',   	74,                         '20.01.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Ефимов Глеб Дмитриевич',          37,         'yibeumabreneu-5069@yopmail.com',       '+7 (917) 802-99-10',   	80,                         '16.02.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Колесников Матвей Алексеевич',    27,         'veiveuweucinno-6851@yopmail.com',      '+7 (907) 335-68-31',   	72,                         '01.09.2020');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,                              drv_phone_number,       	drv_percent_of_payment,     drv_registration_date)
+            VALUES      ('Пантелеев Дмитрий Никитич',       34,         'muppureunnoiddo-2003@yopmail.com',     '+7 (929) 416-41-83',   	75,                         '16.06.2020');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,      						drv_phone_number,       	drv_percent_of_payment, 	drv_registration_date)
+            VALUES      ('Матвеев Марк Фёдорович',          25,         'troppatebrewau-2762@yopmail.com',      '+7 (996) 811-17-94',   	73,                         '21.11.2022');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,      						drv_phone_number,       	drv_percent_of_payment, 	drv_registration_date)
+            VALUES      ('Нестерова Софья Егоровна',        27,         'zennezittetou-8282@yopmail.com',       '+7 (951) 880-58-10',   	78,                         '25.03.2022');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,      						drv_phone_number,       	drv_percent_of_payment, 	drv_registration_date)
+            VALUES      ('Кузнецов Платон Михайлович',      34,         'kemmepitrautrei-6311@yopmail.com',     '+7 (922) 998-18-17',   	77,                         '13.04.2019');
+
+INSERT INTO	driver      (drv_name,                          drv_age,    drv_email,      						drv_phone_number,       	drv_percent_of_payment, 	drv_registration_date)
+            VALUES      ('Островская Дарья Артёмовна',      49,         'niprecomauvau-7087@yopmail.com',       '+7 (985) 658-71-15',   	80,                         '03.12.2019');
+
+
+9) Таблица currency2country
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (1,             1);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (2,             6);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             7);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             8);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             10);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             16);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             17);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             18);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             19);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             20);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             23);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             25);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             27);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             28);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             29);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             30);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             31);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             32);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             33);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (3,             34);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (4,             14);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (5,             9);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (6,             13);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (7,             2);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (8,             4);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (9,             3);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (10,            12);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (11,            11);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (12,            15);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (13,            5);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (14,            24);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (15,            22);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (16,            21);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (17,            36);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (18,            37);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (19,            26);
+
+INSERT INTO	currency2country    (currency_id,   country_id)
+            VALUES              (20,            35);
+
+
+10) Таблица passenger
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Марков Давид Михайлович',              19,         20,                     'nereurihennau-4911@yopmail.com',       '+7 (922) 549-78-41',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Соловьев Даниил Иванович',             23,         9,                      'zahejeunnucrei-5616@yopmail.com',      '+7 (994) 615-51-35',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Парфенов Марк Артёмович',              44,         10,                     'yigruzoivavu-6200@yopmail.com',        '+7 (913) 564-13-39',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Ковалева Варвара Ильинична',           26,         22,                     'crouwugrauzewei-7193@yopmail.com',     '+7 (952) 112-32-31',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Гаврилова Ангелина Антоновна',         37,         17,                     'gakimafoibe-2095@yopmail.com',         '+7 (923) 390-36-20',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (914) 752-35-66',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Поляков Иван Георгиевич',              54,         31,                     'camebrehatru-6541@yopmail.com',        '+7 (974) 687-39-27',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Петров Даниэль Романович',             29,         13,                     'meukabetrupe-5381@yopmail.com',        '+7 (998) 806-41-56',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Молчанов Фёдор Маркович',              46,         19,                     'fevuveujicre-5860@yopmail.com',        '+7 (933) 963-39-92',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (929) 539-15-83',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (958) 877-72-96',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Гончаров Святослав Денисович',         35,         26,                     'grejogugraufa-3019@yopmail.com',       '+7 (949) 459-97-32',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Синицын Давид Львович',                21,         24,                     'ciyoxoimeinu-5315@yopmail.com',        '+7 (908) 374-18-92',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Лебедев Иван Петрович',                34,         12,                     'monnupakorou-9891@yopmail.com',        '+7 (970) 254-53-93',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Лапшин Юрий Львович',                  38,         11,                     'yotrorufowe-6169@yopmail.com',         '+7 (979) 108-29-89',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Александров Максим Денисович',         27,         27,                     'feutaugeppemeu-2095@yopmail.com',      '+7 (996) 277-11-48',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Крылов Станислав Даниилович',          42,         28,                     'keiseihorule-2571@yopmail.com',        '+7 (947) 760-96-57',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Матвеева Валерия Матвеевна',           26,         15,                     'welibreddoinna-9216@yopmail.com',      '+7 (985) 324-34-74',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Михайлова Василиса Алексеевна',        33,         2,                      'yeluxummappau-3513@yopmail.com',       '+7 (961) 826-98-80',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Киреев Сергей Тимурович',              25,         18,                     'prokippeiddoceu-7433@yopmail.com',     '+7 (967) 931-32-78',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (949) 148-23-33',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Карпов Гордей Георгиевич',             20,         21,                     'meufromabepu-7114@yopmail.com',        '+7 (906) 180-17-64',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Ершова Александра Савельевна',         36,         1,                      'bricekotreutroi-4461@yopmail.com',     '+7 (933) 419-10-63',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (932) 181-47-53',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (961) 628-20-75',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Снегирева Стефания Марковна',          23,         30,                     'jitahitakei-5091@yopmail.com',         '+7 (986) 486-97-47',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (963) 935-60-85',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Ефимов Александр Артёмович',           36,         7,                      'sacusaututre-2581@yopmail.com',        '+7 (939) 522-44-21',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Орехова Кристина Михайловна',          51,         6,                      'broippabugetro-2545@yopmail.com',      '+7 (915) 292-15-20',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Журавлева Александра Данииловна',      49,         4,                      'britauttohoiffa-3260@yopmail.com',     '+7 (993) 260-35-64',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (975) 404-92-10',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Захаров Фёдор Максимович',             48,         8,                      'zoupaussetippo-8126@yopmail.com',      '+7 (974) 447-95-68',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Ковалев Герман Тимурович',             35,         29,                     'fefragajasau-2087@yopmail.com',        '+7 (914) 349-89-95',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (976) 819-19-85',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (932) 695-12-24',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (943) 321-58-13',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Филатова Виктория Сергеевна',          26,         23,                     'wautrunutreippei-3143@yopmail.com',    '+7 (958) 162-23-86',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (955) 479-46-86',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Захаров Иван Билалович',               22,         8,                      'faupreffouhalu-2669@yopmail.com',      '+7 (971) 713-66-45',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Нефедов Тихон Миронович',              32,         5,                      'treneugroduve-1651@yopmail.com',       '+7 (923) 666-66-89',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (974) 279-49-90',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Кондратьев Михаил Александрович',      30,         14,                     'zutroucenniza-2800@yopmail.com',       '+7 (980) 722-20-33',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Парфенов Софья Ильинична',             50,         10,                     'hattuxapromo-8219@yopmail.com',        '+7 (985) 339-50-31',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (1,                     NULL,                                   NULL,       NULL,                   NULL,                                   '+7 (905) 881-26-47',   NULL);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Борисова София Игоревна',              26,         3,                      'frewoimupatrau-8806@yopmail.com',      '+7 (916) 371-11-13',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Попов Виктор Петрович',                27,         16,                     'watappakeco-3251@yopmail.com',         '+7 (989) 151-85-59',   1);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Титов Даниэль Никитич',                31,         25,                      'nekaunnoiddido-9789@yopmail.com',      '+7 (962) 179-42-45',  0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Чернова Майя Вячеславовна',            42,         21,                     'peppeitibrijeu-9203@yopmail.com',      '+7 (994) 984-70-87',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Серова Виктория Вячеславовна',         21,         14,                     'froibaddaufraki-3168@yopmail.com',     '+7 (958) 939-11-66',   0);
+
+INSERT INTO	passenger   (psg_is_anonymous,      psg_name,                               psg_age,    psg_home_address_id,    psg_email,                              psg_phone_number,       psg_is_male)
+            VALUES      (0,                     'Волков Фёдор Фёдорович',               29,         23,                     'tovifeinnoittoi-3161@yopmail.com',     '+7 (915) 454-26-54',   1);
+
+

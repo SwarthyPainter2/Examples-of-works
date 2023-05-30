@@ -1,0 +1,11 @@
+CREATE USER taxi_budarin
+            IDENTIFIED BY 7713
+            DEFAULT TABLESPACE SYSAUX
+            TEMPORARY TABLESPACE TEMP
+            ACCOUNT UNLOCK;
+
+ALTER USER taxi_budarin QUOTA UNLIMITED ON SYSAUX;
+GRANT CREATE SESSION TO taxi_budarin;
+GRANT CREATE TABLE, CREATE VIEW, CREATE SEQUENCE TO taxi_budarin;
+GRANT CREATE TRIGGER, CREATE PROCEDURE TO taxi_budarin;
+/* CREARE PROCEDURE - включает создание процедур, функция и пакетов в рамках своей схемы*/

@@ -1,0 +1,218 @@
+/*1) Триггер для лишения парковочного места автомобиля более недоступного для аренды*/
+create or replace TRIGGER update_parking_id FOR UPDATE OF car_status ON car COMPOUND TRIGGER
+
+var_tr BOOLEAN;
+
+var_error_reserved              EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_reserved, -20003);
+
+BEFORE EACH ROW IS
+BEGIN
+      IF :OLD.car_status != 'UNAVAILABLE_FOREVER' AND :NEW.car_status = 'UNAVAILABLE_FOREVER' AND :NEW.car_is_reserved = 0
+         THEN  var_tr := TRUE;
+         ELSIF :OLD.car_status != 'UNAVAILABLE_FOREVER' AND :NEW.car_status = 'UNAVAILABLE_FOREVER' AND :NEW.car_is_reserved = 1
+         THEN  RAISE_APPLICATION_ERROR (-20003, 'действие не выполнено, т.к. данный автомобиль забронирован водителем');
+      END IF;
+
+EXCEPTION
+          WHEN var_error_reserved
+          THEN RAISE;
+               dbms_output.put_line ('Ошибка ' || sqlerrm);
+
+END BEFORE EACH ROW;
+
+AFTER STATEMENT IS
+BEGIN
+          IF var_tr = TRUE
+             THEN
+                   UPDATE car SET   parking_id = NULL
+                              WHERE car_status = 'UNAVAILABLE_FOREVER';
+          END IF;
+
+END AFTER STATEMENT;
+
+END update_parking_id;
+
+
+
+/*2) Триггер для контроля отсутствия NULL значений в поле parking_id после вставки или обновления строк*/
+CREATE OR REPLACE TRIGGER insert_or_update_parking_id BEFORE INSERT OR UPDATE ON car FOR EACH ROW
+
+DECLARE
+
+var_error_parking_id         EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_parking_id, -20013);
+
+BEGIN
+        IF :NEW.parking_id IS NULL AND UPPER (:NEW.car_status) != 'UNAVAILABLE_FOREVER'
+           THEN RAISE_APPLICATION_ERROR (-20013, 'действие не выполнено, т.к. за каждым автомобилем с любым статусом, кроме UNAVAILABLE_FOREVER, должно быть закреплено место парковки');
+        END IF;
+
+EXCEPTION
+          WHEN var_error_parking_id
+          THEN RAISE;
+               dbms_output.put_line ('Ошибка ' || sqlerrm);
+
+END;
+
+
+
+/*3) Триггеры для контроля обновления дат периода аренды автомобиля*/
+create or replace TRIGGER check_date_rent BEFORE UPDATE OF date_start_rent_period, date_stop_rent_period ON rent FOR EACH ROW
+
+DECLARE
+
+var_error_date         EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_date, -20014);
+
+BEGIN
+        IF :NEW.date_start_rent_period >= :NEW.date_stop_rent_period
+           THEN RAISE_APPLICATION_ERROR (-20014, 'действие не выполнено, т.к. дата окончания арендного периода всегда должна быть позднее его начала');
+        END IF;
+
+EXCEPTION
+          WHEN var_error_date 
+          THEN RAISE;
+               dbms_output.put_line ('Ошибка ' || sqlerrm);
+
+END;
+
+
+/*4) Триггеры для контроля обновления даты и времени начала и завершения заказа*/
+create or replace TRIGGER check_date_orders BEFORE UPDATE OF time_create_order, time_end_order ON orders FOR EACH ROW
+
+DECLARE
+
+var_error_date         EXCEPTION;
+PRAGMA EXCEPTION_INIT (var_error_date, -20014);
+
+BEGIN
+        IF :NEW.time_create_order >= :NEW.time_end_order
+           THEN RAISE_APPLICATION_ERROR (-20014, 'действие не выполнено, т.к. дата и время завершения заказа всегда должна быть позднее его начала');
+        END IF;
+
+EXCEPTION
+          WHEN var_error_date 
+          THEN RAISE;
+               dbms_output.put_line ('Ошибка ' || sqlerrm);
+
+END;
+
+
+
+/*5) Триггеры для логирования записей (автоматической вставки даты и времени после создания новой строки)*/
+
+CREATE OR REPLACE TRIGGER logging_insert_for_rating_passenger2driver_tab BEFORE INSERT ON rating_passenger2driver FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_orders_tab BEFORE INSERT ON orders FOR EACH ROW
+BEGIN
+      :NEW.time_create_order := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_way_tab BEFORE INSERT ON way FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_passenger_tab BEFORE INSERT ON passenger FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_passenger_image_tab BEFORE INSERT ON passenger_image FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_passenger_rating_tab BEFORE INSERT ON passenger_rating FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_address_tab BEFORE INSERT ON address FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_street_tab BEFORE INSERT ON street FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_city_tab BEFORE INSERT ON city FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_country_tab BEFORE INSERT ON country FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_rating_driver2passenger_tab BEFORE INSERT ON rating_driver2passenger FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_payment_tab BEFORE INSERT ON payment FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_currency_tab BEFORE INSERT ON currency FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_currency2country_tab BEFORE INSERT ON currency2country FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_rate_tab BEFORE INSERT ON rate FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_driver_tab BEFORE INSERT ON driver FOR EACH ROW
+BEGIN
+      :NEW.time_create_registration := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_driver_image_tab BEFORE INSERT ON driver_image FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_driver_rating_tab BEFORE INSERT ON driver_rating FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_refueling_tab BEFORE INSERT ON refueling FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_parking_tab BEFORE INSERT ON parking FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_rent_tab BEFORE INSERT ON rent FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_car_tab BEFORE INSERT ON car FOR EACH ROW
+BEGIN
+      :NEW.time_create := SYSDATE;
+END;
+
+CREATE OR REPLACE TRIGGER logging_insert_for_car_arcive_tab BEFORE INSERT ON car_arcive FOR EACH ROW
+BEGIN
+      :NEW.time_create_archive_rec := SYSDATE;
+END;

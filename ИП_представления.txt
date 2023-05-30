@@ -1,0 +1,186 @@
+/*1) Представление, которое для каждого пользователя, который хотя бы раз пользовался услугами такси, 
+     подберёт 5 водителей, с которыми данный пользователь ещё не ездил, но у которых средняя оценка выше 4 (вариант 1)*/
+CREATE OR REPLACE VIEW new_drv_with_highly_rated_for_psg AS
+
+SELECT passenger_id, CASE WHEN psg_name IS NULL
+                          THEN 'неавторизированный пользователь'
+                          ELSE psg_name
+                     END passenger_name,
+       driver_id, drv_name AS driver_name, driver_rating
+FROM (SELECT ROW_NUMBER () OVER (PARTITION BY passenger_id ORDER BY driver_rating DESC) AS num, 
+      passenger_id, highly_rated_drv.driver_id, driver_rating
+      FROM (SELECT DISTINCT passenger_id, driver_id
+            FROM orders) psg_who_use_taxi
+                 LEFT JOIN
+						   (SELECT driver_id, total_rating_drv AS driver_rating
+						    FROM driver_rating
+						    WHERE total_rating_drv >= 4) highly_rated_drv
+					  ON psg_who_use_taxi.driver_id != highly_rated_drv.driver_id) new_drv_for_psg
+				JOIN passenger ON new_drv_for_psg.passenger_id = passenger.id
+				JOIN driver ON new_drv_for_psg.driver_id = driver.id
+WHERE num <= 5;
+
+
+/*1) Представление, которое для каждого пользователя, который хотя бы раз пользовался услугами такси, 
+     подберёт 5 водителей, с которыми данный пользователь ещё не ездил, но у которых средняя оценка выше 4 (вариант 2)*/
+CREATE OR REPLACE VIEW new_drv_with_highly_rated_for_psg AS
+
+SELECT passenger_id, passenger_name, driver_id, driver_name, driver_rating
+FROM (SELECT ROW_NUMBER () OVER (PARTITION BY passenger_id ORDER BY total_rating_drv DESC) AS num,
+             passenger_id, CASE WHEN psg_name IS NULL
+                           THEN 'passenger not authorized'
+                           ELSE psg_name
+                           END passenger_name,
+             new_drv_for_psg.driver_id, drv_name AS driver_name, total_rating_drv AS driver_rating
+      FROM (SELECT passenger_id, driver_id
+            FROM (SELECT DISTINCT passenger_id
+                  FROM orders) psg_who_use_taxi
+                  CROSS JOIN
+                             (SELECT driver_id
+                              FROM driver_rating
+                              WHERE total_rating_drv >= 4) highly_rated_drv
+                  MINUS
+                  (SELECT DISTINCT passenger_id, driver_id
+                   FROM orders)) new_drv_for_psg
+                JOIN driver_rating ON new_drv_for_psg.driver_id = driver_rating.driver_id
+				JOIN passenger ON new_drv_for_psg.passenger_id = passenger.id
+				JOIN driver ON new_drv_for_psg.driver_id = driver.id) final_selection
+WHERE num <= 5;
+
+
+/*2) Представление, которое для каждого пользователя, у которых больше 10 поездок,
+     в порядке убывания подберёт 5 самых частых мест начала или окончания поездки*/
+CREATE OR REPLACE VIEW most_popular_psg_routes AS
+
+SELECT passenger_id, passenger_name, route_point
+FROM (SELECT passenger_id, passenger_name, route_point, qty_route_point, ROW_NUMBER () OVER (PARTITION BY passenger_id ORDER BY qty_route_point DESC) AS num
+      FROM (SELECT active_psg.passenger_id, CASE WHEN psg_name IS NULL
+                                                 THEN 'неавторизированный пользователь'
+                                                 ELSE psg_name
+                                            END passenger_name,
+                   route_point, COUNT (1) AS qty_route_point
+            FROM (SELECT passenger_id, COUNT (orders.id)  AS qty_trip
+                  FROM orders
+                  WHERE status_order = 'CANCELED'
+                  GROUP BY passenger_id
+                  HAVING COUNT (orders.id) >= 10) active_psg
+					   JOIN orders ON active_psg.passenger_id = orders.passenger_id
+					   JOIN passenger ON active_psg.passenger_id = passenger.id
+					   JOIN
+                            (SELECT order_id, from_address_id AS route_point
+                             FROM way
+                             WHERE previous_part_route_id IS NULL
+                             UNION
+                             SELECT DISTINCT order_id, LAST_VALUE (to_address_id) OVER (PARTITION BY order_id ORDER BY previous_part_route_id NULLS FIRST) AS route_point
+                             FROM way) all_points_route
+                  ON orders.id = all_points_route.order_id
+            GROUP BY active_psg.passenger_id, psg_name, route_point) qty_points_route_psg) qty_points_route_psg_with_num
+WHERE num <= 5;
+
+
+/*3) Представление, показывающее, в каких городах самые дорогие тарифы на
+бензин в рублях с учётом курса валюты на тот момент, когда была оплата за бензина (вариант 1)*/
+CREATE OR REPLACE VIEW cities_with_highest_price_gasoline AS
+
+SELECT city_name, avg_gasoline_tariff_rub
+FROM (SELECT DISTINCT city_name, AVG (gasoline_tariff_rub) OVER (PARTITION BY city_name ORDER BY city_name) AS avg_gasoline_tariff_rub,
+                                 AVG (gasoline_tariff_rub) OVER (ORDER BY city_name) AS total_avg_gasoline_tariff_rub
+      FROM (SELECT DISTINCT refueling.id, gas_station_address_id,
+                            CASE WHEN  currency_id = 1
+                                 THEN payment_amount / amount_gas_refueled
+                                  ELSE (payment_amount / amount_gas_refueled) * (FIRST_VALUE (currency_rate) OVER (PARTITION BY refueling.id ORDER BY time_create_rate DESC))
+                            END gasoline_tariff_rub
+            FROM refueling JOIN payment ON refueling.refueling_payment_id = payment.id
+                           LEFT JOIN (SELECT currency_id_1, rate_cur_1_to_cur_2 AS currency_rate, time_create AS time_create_rate
+                                      FROM rate
+                                      WHERE currency_id_2 = 1) rate_to_ruble
+                           ON payment.currency_id = rate_to_ruble.currency_id_1
+            WHERE refueling.time_create <= time_create_rate OR time_create_rate IS NULL) cost_refueling_in_rub
+				 JOIN address ON cost_refueling_in_rub.gas_station_address_id = address.id
+				 JOIN street ON address.street_id = street.id
+				 JOIN city ON street.city_id = city.id) avg_gasoline_tariff_rub_in_city
+WHERE avg_gasoline_tariff_rub > total_avg_gasoline_tariff_rub
+ORDER BY avg_gasoline_tariff_rub;
+
+
+/*3) Представление, показывающее, в каких городах самые дорогие тарифы на
+бензин в рублях с учётом курса валюты на тот момент, когда была оплата за бензина (вариант 2)*/
+CREATE OR REPLACE VIEW cities_with_highest_price_gasoline AS
+
+SELECT city_name, avg_gasoline_tariff_rub
+FROM (SELECT city_name, AVG (gasoline_tariff_rub) OVER (PARTITION BY city_name ORDER BY city_name) AS avg_gasoline_tariff_rub,
+                        AVG (gasoline_tariff_rub) OVER (ORDER BY city_name) AS total_avg_gasoline_tariff_rub
+      FROM (SELECT refueling.id, gas_station_address_id, (payment_amount / amount_gas_refueled) AS gasoline_tariff_rub
+            FROM refueling JOIN payment ON refueling.refueling_payment_id = payment.id
+            WHERE currency_id = 1
+            UNION ALL
+            SELECT DISTINCT refueling.id, gas_station_address_id, ((payment_amount / amount_gas_refueled) * FIRST_VALUE (currency_rate) OVER (PARTITION BY refueling.id ORDER BY time_create_rate DESC)) AS gasoline_tariff_rub
+            FROM refueling JOIN payment ON refueling.refueling_payment_id = payment.id
+                           LEFT JOIN (SELECT currency_id_1, rate_cur_1_to_cur_2 AS currency_rate , time_create AS time_create_rate
+                                      FROM rate
+                                      WHERE currency_id_2 = 1) rate_to_ruble
+                           ON payment.currency_id = rate_to_ruble.currency_id_1
+            WHERE currency_id != 1 AND refueling.time_create <= time_create_rate) cost_refueling_in_rub
+                 JOIN address ON cost_refueling_in_rub.gas_station_address_id = address.id
+                 JOIN street ON address.street_id = street.id
+                 JOIN city ON street.city_id = city.id) avg_gasoline_tariff_rub_in_city
+WHERE avg_gasoline_tariff_rub > total_avg_gasoline_tariff_rub
+ORDER BY avg_gasoline_tariff_rub;
+
+
+/*4) Представление, показывающее, средний чек за поездку в разных странах*/
+CREATE OR REPLACE VIEW avg_cost_trip_in_different_countries AS
+
+SELECT DISTINCT country_name, AVG (cost_trip_original) OVER (PARTITION BY country_name, currency ORDER BY country_name) AS avg_cost_trip_original, currency,
+                              AVG (cost_trip_rub) OVER (PARTITION BY country_name, currency ORDER BY country_name) AS avg_cost_trip_rub,
+                              AVG (cost_trip_rub) OVER (PARTITION BY country_name ORDER BY country_name) AS total_avg_cost_trip_rub
+FROM (SELECT DISTINCT orders.id, payment_amount AS cost_trip_original, currency_abbreviation AS currency, CASE WHEN  currency_id = 1
+                                                                                                               THEN payment_amount
+                                                                                                               ELSE payment_amount * (FIRST_VALUE (currency_rate) OVER (PARTITION BY orders.id ORDER BY time_create_rate DESC))
+                                                                                                          END cost_trip_rub
+      FROM orders JOIN payment ON orders.payment_order_id = payment.id
+                  JOIN currency ON payment.currency_id = currency.id
+                  LEFT JOIN (SELECT currency_id_1, rate_cur_1_to_cur_2 AS currency_rate, time_create AS time_create_rate
+                             FROM rate
+                             WHERE currency_id_2 = 1) rate_to_ruble
+                  ON payment.currency_id = rate_to_ruble.currency_id_1
+      WHERE (orders.time_create_order <= time_create_rate OR time_create_rate IS NULL) AND status_order = 'CANCELED') cost_trip
+                  JOIN (SELECT order_id, from_address_id AS order_addess_id
+                        FROM way
+                        WHERE previous_part_route_id IS NULL) all_order_addess_id
+                  ON cost_trip.id = all_order_addess_id.order_id
+                  JOIN address ON all_order_addess_id.order_addess_id = address.id
+                  JOIN street ON address.street_id = street.id
+                  JOIN city ON street.city_id = city.id
+                  JOIN country ON city.country_id = country.id
+ORDER BY total_avg_cost_trip_rub;
+
+
+/*5) Представление, показывающее, месячную динамику цен на проезд за 1 километр в городах России*/
+CREATE OR REPLACE VIEW monthly_taxi_price_dynamics_in_rus AS
+
+SELECT DISTINCT order_date, AVG (payment_amount_rub / total_distance_trip) AS cost_trip_rub
+FROM (SELECT DISTINCT orders.id AS order_id, TO_CHAR (TRUNC (time_create_order, 'MM'), 'MM.YYYY') AS order_date,
+                      CASE WHEN  currency_id = 1
+                           THEN payment_amount
+                           ELSE payment_amount * (FIRST_VALUE (currency_rate) OVER (PARTITION BY orders.id ORDER BY time_create_rate DESC))
+                      END payment_amount_rub
+      FROM orders JOIN payment ON orders.payment_order_id = payment.id
+                  LEFT JOIN (SELECT currency_id_1, rate_cur_1_to_cur_2 AS currency_rate, time_create AS time_create_rate
+                             FROM rate
+                             WHERE currency_id_2 = 1) rate_to_ruble
+                  ON payment.currency_id = rate_to_ruble.currency_id_1
+      WHERE (time_create_order <= time_create_rate OR time_create_rate IS NULL) AND status_order = 'CANCELED') cost_trip
+      JOIN (SELECT order_id, SUM (way_distance) AS total_distance_trip
+            FROM way
+            WHERE order_id NOT IN (SELECT DISTINCT order_id
+                                   FROM way LEFT JOIN (SELECT address.id, country_name
+                                                       FROM address JOIN street ON address.street_id = street.id
+                                                                    JOIN city ON street.city_id = city.id
+                                                                    JOIN country ON city.country_id = country.id
+                                                       WHERE country_name != 'Россия') all_cities_outside_rus
+                                            ON way.from_address_id = all_cities_outside_rus.id OR way.to_address_id = all_cities_outside_rus.id
+                                   WHERE country_name IS NULL)
+            GROUP BY order_id) orders_in_rus
+      ON cost_trip.order_id = orders_in_rus.order_id
+GROUP BY order_date;
