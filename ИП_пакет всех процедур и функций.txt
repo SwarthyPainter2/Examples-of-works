@@ -46,7 +46,7 @@ var_error_male_id               EXCEPTION;
 PRAGMA EXCEPTION_INIT (var_error_male_id, -20011);
 
 var_error_rating                EXCEPTION;
-PRAGMA EXCEPTION_INIT (var_error_nulls_in_par, -20012);
+PRAGMA EXCEPTION_INIT (var_error_rating, -20012);
 
 PROCEDURE booking_car_by_driver (par_driver_id IN driver.id%TYPE, par_car_id IN car.id%TYPE);
 /*1) Процедура для бронирования автомобиля водителем, в параметрах необходимо указать:
@@ -141,6 +141,7 @@ FUNCTION payroll_calculation_drv (par_month IN NUMBER, par_year IN NUMBER) RETUR
 END pkg_taxi_budarin;
 
 
+
 create or replace PACKAGE BODY pkg_taxi_budarin AS
 
 /*1) Процедура для бронирования автомобиля водителем*/
@@ -198,7 +199,7 @@ BEGIN
                THEN RAISE_APPLICATION_ERROR (-20003, 'действие не выполнено, т.к. данный автомобиль уже забронирован другим водителем');
                /*проверка статуса резерва и инициация вызова ошибки для случев, когда автомобиль с указанным в параметре id уже забронирован, т.е. значение в поле car_is_reserved уже равно 1*/
                ELSIF var_check_status != 'CAR_READY_TO_USE'
-               THEN RAISE_APPLICATION_ERROR (-20004, 'действие не выполнено, т.к. данный автомобиль временно недоступен для бронирования');
+               THEN RAISE_APPLICATION_ERROR (-20004, 'действие не выполнено, т.к. данный автомобиль недоступен для бронирования');
                 /*проверка статуса состояния готовности автомобиля и инициация вызова ошибки для случев, когда автомобилю с указанным в параметре id присвоен статус отличный от 'готов к использованию' (например, находится на ремонте), т.е. значение в поле car_status не соответствует значению CAR_READY_TO_USE*/
                ELSE
                     INSERT INTO rent    (driver_id,         car_id,         date_start_rent_period,     date_stop_rent_period,      spent_gasoline_rent_period,     mileage_rent_period)
@@ -333,7 +334,7 @@ BEGIN
                         /*обработка ошибки для случев, когда id валюты (которой оплачивалась заправка автомобиля) введен неправильно, т.е. указанного в параметре id нет в таблице currency*/
             END;
 
-            var_payment_type := UPPER (par_payment_type);            
+            var_payment_type := UPPER (REPLACE (par_payment_type, ' ', ''));            
 
             IF var_search_driver_id IS NULL OR var_check_car IS NULL OR var_check_gs_address_id IS NULL OR var_check_currency_id IS NULL OR par_amount_of_gas IS NULL OR par_payment IS NULL OR var_payment_type IS NULL
                THEN RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Для устранения ошибки проверьте отсутствие NULL значений в параметрах при вызове процедуры, либо внесите исправления в соответствии с комментариями об ошибках выше (если они есть)');
@@ -391,16 +392,16 @@ var_check_currency_id           currency.id%TYPE;
 var_check_address               NUMBER;
 
 BEGIN
-            SELECT TO_NUMBER (REGEXP_SUBSTR (REPLACE (par_to_address, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL)) AS address
+            SELECT TO_NUMBER (REGEXP_SUBSTR (REPLACE (par_to_address, ' ', '-'),'[^,|,-|_|;|/|\|:|-|\.]+', 1, LEVEL)) AS address
             BULK COLLECT INTO var_tab_address
             FROM dual
-            CONNECT BY REGEXP_SUBSTR (REPLACE (par_to_address, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL) IS NOT NULL;
+            CONNECT BY REGEXP_SUBSTR (REPLACE (par_to_address, ' ', '-'),'[^,|,-|_|;|/|\|:|-|\.]+', 1, LEVEL) IS NOT NULL;
             /*подзапрос преобразовывает список id адресов промежуточной(-ых) и конечной точки маршрута, переданный в параметре, в обособленные значения числового формата, распределенные по отдельным строкам, для заполнения коллекции var_tab_address*/
 
-            SELECT TO_NUMBER (REGEXP_SUBSTR (REPLACE (par_distance, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL)) AS distance
+            SELECT TO_NUMBER (REGEXP_SUBSTR (REPLACE (par_distance, ' ', '-'),'[^,|,-|_|;|/|\|:|-|\.]+', 1, LEVEL)) AS distance
             BULK COLLECT INTO var_tab_distance
             FROM dual
-            CONNECT BY REGEXP_SUBSTR (REPLACE (par_distance, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL) IS NOT NULL;
+            CONNECT BY REGEXP_SUBSTR (REPLACE (par_distance, ' ', '-'),'[^,|,-|_|;|/|\|:|-|\.]+', 1, LEVEL) IS NOT NULL;
             /*подзапрос преобразовывает список дистанций маршрута (расстояние между начальной и конечной точкой в киллометрах), переданный в параметре, в обособленные значения числового формата, распределенные по отдельным строкам, для заполнения коллекции var_tab_distance*/
 
             BEGIN
@@ -435,9 +436,9 @@ BEGIN
                   FROM dual
                   /*подзапрос преобразовывает id адрес начальной точки маршрута, переданной в параметре, в значение числового формата*/
                   UNION ALL
-                  SELECT TO_NUMBER (REGEXP_SUBSTR (REPLACE (par_to_address, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL)) AS address
+                  SELECT TO_NUMBER (REGEXP_SUBSTR (REPLACE (par_to_address, ' ', '-'),'[^,|,-|_|;|/|\|:|-|\.]+', 1, LEVEL)) AS address
                   FROM dual
-                  CONNECT BY REGEXP_SUBSTR (REPLACE (par_to_address, ' ', ''),'[^,|;|/|\|:|-]+', 1, LEVEL) IS NOT NULL)
+                  CONNECT BY REGEXP_SUBSTR (REPLACE (par_to_address, ' ', '-'),'[[^,|,-|_|;|/|\|:|-|\.]+]+', 1, LEVEL) IS NOT NULL)
                   /*подзапрос преобразовывает список id адресов промежуточной(-ых) и конечной точки маршрута, переданный в параметре, в обособленные значения числового формата, распределенные по отдельным строкам*/
                   /*объединение всех id адресов поездки (начальной, промежуточной(-ых) и конечной точки маршрута), переданных в параметрах, для проверки их существования в базе*/
             WHERE address IN (SELECT id
@@ -446,7 +447,7 @@ BEGIN
             /*определение количеста всех id адресов поездки (начальной, промежуточной(-ых) и конечной точки маршрута), совпадающих с id авдресов в базе и передача результата в переменную var_check_address;
               действие необходимо для проверки существования всех указанных в параметрах id адресов в базе, т.е. если при сравнении количество совпавших id адресов будет соответствовать общему количеству id адресов, переданных в параметрах, то все id введены правильно и существуют в таблице address, если не будет соответствовать, то инициируется ошибка*/
 
-            var_payment_type := UPPER (par_payment_type);
+            var_payment_type := UPPER (REPLACE (par_payment_type, ' ', ''));
 
             IF var_check_psg_id IS NULL OR var_check_currency_id IS NULL OR par_payment IS NULL OR var_payment_type IS NULL OR par_from_address IS NULL OR var_tab_address.count() = 0 OR var_tab_distance.count() = 0
                THEN RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Для устранения ошибки проверьте отсутствие NULL значений в параметрах при вызове процедуры, либо внесите исправления в соответствии с комментариями об ошибках выше (если они есть)');
@@ -609,13 +610,13 @@ BEGIN
                     SELECT COUNT (drv_email)
                     INTO var_check_email
                     FROM driver
-                    WHERE drv_email = REPLACE (par_email, ' ', '');
+                    WHERE REPLACE (drv_email, ' ', '') = REPLACE (par_email, ' ', '');
                     /*определение количества email в базе, совпадающих с email водителя, указанного в параметре и передача результата в переменную var_check_email*/
 
                     SELECT COUNT (drv_phone_number)
                     INTO var_check_phone
                     FROM driver
-                    WHERE drv_phone_number = REPLACE (par_phone_number, ' ', '');
+                    WHERE REGEXP_REPLACE (drv_phone_number, '[^0-9]+', '') = REGEXP_REPLACE (par_phone_number, '[^0-9]+', '');
                     /*определение количества телефонных номеров в базе, совпадающих с номером телефона водителя, указанного в параметре и передача результата в переменную var_check_phone*/
 
 
@@ -624,14 +625,14 @@ BEGIN
                        /*проверка на NULL и инициация вызова ошибки для случев, когда хотя бы в одном из параметров или check переменная, значения которых используются для изменения таблиц, принимает значение NULL;
                          действие необходимо, т.к. наличие NULL значений будет приводить к ошибке нарушения ограничений целостности таблицы, в которую процедура вносит изменения*/
                        ELSIF var_check_email > 0
-                       THEN  RAISE_APPLICATION_ERROR (-20010, 'действие не выполнено, т.к. пользователь с таким адресом электронной почты уже зарегистрирован');
+                       THEN  RAISE_APPLICATION_ERROR (-20009, 'действие не выполнено, т.к. пользователь с таким адресом электронной почты уже зарегистрирован');
                        /*проверка уникальности email клиента, указанного в параметре и инициация вызова ошибки для случев, когда количество email в базе (таблице driver), совпадающих с email водителя, указанном в параметре, больше 0, т.е. совпадения существуют*/
                        ELSIF var_check_phone > 0
-                       THEN  RAISE_APPLICATION_ERROR (-20011, 'действие не выполнено, т.к. пользователь с таким номером телефона уже зарегистрирован');
+                       THEN  RAISE_APPLICATION_ERROR (-20010, 'действие не выполнено, т.к. пользователь с таким номером телефона уже зарегистрирован');
                        /*проверка уникальности номера телефона клиента, указанного в параметре и инициация вызова ошибки для случев, когда количество телефонных номеров в базе (таблице driver), совпадающих с номером телефона водителя, указанном в параметре, больше 0, т.е. совпадения существуют*/
                        ELSE
-                             INSERT INTO driver          (drv_name,      drv_age,        drv_email,      drv_phone_number,       drv_percent_of_payment)
-                                         VALUES          (par_name,      par_age,        par_email,      par_phone_number,       par_percent_of_payment)
+                             INSERT INTO driver          (drv_name,             drv_age,        drv_email,                         drv_phone_number,                                       drv_percent_of_payment)
+                                         VALUES          (TRIM (par_name),      par_age,        REPLACE (par_email, ' ', ''),      REGEXP_REPLACE (par_phone_number, '[^0-9]+', ''),       par_percent_of_payment)
                              /*в таблицу driver вставляется новая строка: поля drv_name, drv_age, drv_email, drv_phone_number и drv_percent_of_payment заполняются значениями из
                                параметров par_name, par_age, par_email, par_phone_number, par_percent_of_payment соответственно*/
                              RETURNING id INTO var_driver_id;
@@ -678,16 +679,16 @@ BEGIN
                     SELECT COUNT (psg_phone_number)
                     INTO var_check_phone
                     FROM passenger
-                    WHERE psg_phone_number = REPLACE (par_phone_number, ' ', '');
+                    WHERE REGEXP_REPLACE (psg_phone_number, '[^0-9]+', '') = REGEXP_REPLACE (par_phone_number, '[^0-9]+', '');
                     /*определение количества телефонных номеров в базе, совпадающих с номером телефона клиента, указанного в параметре и передача результата в переменную var_check_phone*/
 
                     IF var_check_phone > 0
-                       THEN  RAISE_APPLICATION_ERROR (-20009, 'действие не выполнено, т.к. пользователь с таким номером телефона уже зарегистрирован');
+                       THEN  RAISE_APPLICATION_ERROR (-20010, 'действие не выполнено, т.к. пользователь с таким номером телефона уже зарегистрирован');
                        /*проверка уникальности номера телефона клиента, указанного в параметре и инициация вызова ошибки для случев, когда количество телефонных номеров в базе (таблице passenger), совпадающих с номером телефона клиента, указанном в параметре, больше 0, т.е. совпадения существуют*/
                        ELSIF par_name IS NULL AND par_age IS NULL AND par_address IS NULL AND par_email IS NULL AND par_male IS NULL AND par_phone_number IS NOT NULL
                        THEN
-                             INSERT INTO passenger           (psg_is_anonymous,     psg_name,       psg_age,        psg_home_address_id,        psg_email,      psg_phone_number,       psg_is_male)
-                                         VALUES              (1,                    NULL,           NULL,           par_phone_number,           NULL,           NULL,                   NULL)
+                             INSERT INTO passenger           (psg_is_anonymous,     psg_name,       psg_age,        psg_home_address_id,        psg_email,      psg_phone_number,                                       psg_is_male)
+                                         VALUES              (1,                    NULL,           NULL,           NULL,                       NULL,           REGEXP_REPLACE (par_phone_number, '[^0-9]+', ''),       NULL)
                              /*в таблицу passenger вставляется новая строка: поле psg_is_anonymous принимает 1 (TRUTH - истина), поле psg_home_address_id заполняется значением из параметра par_phone_number,
                                а остальные поля (psg_name, psg_age, psg_home_address_id, psg_email и psg_is_male) заполняются значениями NULL*/
                              RETURNING id INTO var_passenger_id;
@@ -698,7 +699,7 @@ BEGIN
 
 
                        ELSIF par_name IS NULL OR par_age IS NULL OR par_address IS NULL OR par_email IS NULL OR par_phone_number IS NULL OR par_male IS NULL
-                       THEN  RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Если пользователь авторизован, то все параметры, при вызове процедуры должны быть заплнены, если же пользователь не авторизован, то все параметры, кроме номера телефона, должны быть переданы, как NULL значения');
+                       THEN  RAISE_APPLICATION_ERROR (-20001, 'действие не выполнено, т.к. один или несколько параметров принимают значение NULL. Если пользователь авторизован, то все параметры, должны быть заполнены, если же пользователь не авторизован, то все параметры, кроме номера телефона, должны быть переданы, как NULL значения');
                        /*проверка на NULL и инициация вызова ошибки для случев, когда:
                          - хотя бы один из параметров, кроме номера телефона клиента принимает значение не NULL (сценарий для не авторизованных пользователей);
                          - хотя бы один из параметров принимает значение NULL (сценарий для авторизованных пользователей)
@@ -709,7 +710,7 @@ BEGIN
                                      SELECT COUNT (psg_email)
                                      INTO var_check_email
                                      FROM passenger
-                                     WHERE psg_email = REPLACE (par_email, ' ', '');
+                                     WHERE REPLACE (psg_email, ' ', '') = REPLACE (par_email, ' ', '');
                                      /*определение количества email в базе, совпадающих с email клиента, указанного в параметре и передача результата в переменную var_check_email*/
 
                                      SELECT COUNT (id)
@@ -725,11 +726,11 @@ BEGIN
                                         THEN  RAISE_APPLICATION_ERROR (-20006, 'действие не выполнено, т.к. адреса с таким id не существует в базе');
                                         /*проверка уникальности id адеса клиента, указанного в параметре и инициация вызова ошибки для случев, когда количество id адресов в базе (таблице address), совпадающих с id адресом клиента, указанном в параметре, больше 0, т.е. совпадения существуют*/
                                         ELSIF par_male NOT IN (1, 0)
-                                        THEN  RAISE_APPLICATION_ERROR (-20013, 'действие не выполнено, т.к. в параметре указан неправльный идентификатор пола клиента, допустимые идентификаторы: 1 - мужчина, 0 - женщина');
+                                        THEN  RAISE_APPLICATION_ERROR (-20011, 'действие не выполнено, т.к. в параметре указан неправльный идентификатор пола клиента, допустимые идентификаторы: 1 - мужчина, 0 - женщина');
                                         /*проверка доустимых значений для идентификатора пола клиента и инициация вызова ошибки для случев, когда идентификатор пола клиента не соответствует значениям 1 (мужчина) или 0 (женщина)*/
                                         ELSE
-                                              INSERT INTO passenger           (psg_is_anonymous,     psg_name,       psg_age,        psg_home_address_id,        psg_email,      psg_phone_number,       psg_is_male)
-                                                          VALUES              (0,                    par_name,       par_age,        par_address,                par_email,      par_phone_number,       par_male)
+                                              INSERT INTO passenger           (psg_is_anonymous,     psg_name,              psg_age,        psg_home_address_id,        psg_email,                          psg_phone_number,                                      psg_is_male)
+                                                          VALUES              (0,                    TRIM (par_name),       par_age,        par_address,                 REPLACE (par_email, ' ', ''),      REGEXP_REPLACE (par_phone_number, '[^0-9]+', ''),      par_male)
                                               /*в таблицу passenger вставляется новая строка: поле psg_is_anonymous принимает 0 (FALSE - ложь), поля psg_name, psg_age, psg_home_address_id, psg_email, psg_phone_number и psg_is_male
                                                 заполняются значениями из параметров par_name, par_age, par_address, par_email, par_phone_number и par_male соответственно*/
                                               RETURNING id INTO var_passenger_id;
